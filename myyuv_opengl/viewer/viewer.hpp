@@ -8,4 +8,4 @@ void glfw_error_callback(GLint error, const GLchar* desc);
 
 int main_bmp(const myyuv::BMP& bmp);
 
-int main_yuv(const myyuv::YUV& yuv);
+int main_yuv(myyuv::YUV yuv);

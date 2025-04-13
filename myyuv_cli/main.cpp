@@ -1,18 +1,48 @@
+#include <memory>
 #include <myyuv.hpp>
 #include <iostream>
 #include <fstream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 #include <unordered_map>
-#include <cassert>
+#include <functional>
 
 template<typename T, typename U>
 inline static bool mapKeyExist(const std::unordered_map<T, U>& map, const T& key) noexcept {
   return map.find(key) != map.end();
 }
 
-static std::unordered_map<std::string, myyuv::YUV::FourccFormat> format_map = {
+static std::unordered_map<std::string, myyuv::YUV::FourccFormat> format_strings_map = {
   { "IYUV", myyuv::YUV::FourccFormat::IYUV },
+};
+
+static std::unordered_map<std::string, myyuv::YUV::Compression> compression_strings_map = {
+  { "DCT", myyuv::YUV::Compression::DCT },
+};
+
+static std::unordered_map<myyuv::YUV::Compression, std::function<myyuv::YUV(const myyuv::YUV&, const std::vector<std::string>&)>> compression_map = {
+  { myyuv::YUV::Compression::DCT, [](const myyuv::YUV& yuv, const std::vector<std::string>& params)->myyuv::YUV {
+    if (params.size() > 3) {
+      throw std::runtime_error("Error. Too many compression parameters. Can't be more than 3 parameters.");
+    }
+    if (params.size() == 0) {
+      throw std::runtime_error("Error. Too few compression parameters. Must be at least one.");
+    }
+    std::vector<uint8_t> params_res(3);
+    for (size_t i = 0; i < params.size(); i++) {
+      int tmp = std::stoi(params[i]);
+      if (tmp < 1 || tmp > 100) {
+        throw std::runtime_error("Error. Compression parameters for DCT must range between [1..100].");
+      }
+      params_res[i] = tmp;
+    }
+    // fill the rest if given 1 or 2 parameters instead of 3
+    for (size_t i = params.size() - 1; i < 3; i++) {
+      params_res[i] = params_res[params.size() - 1];
+    }
+    return yuv.compress(myyuv::YUV::Compression::DCT, params_res.data(), params_res.size());
+  }},
 };
 
 static void print_usage() {
@@ -20,12 +50,19 @@ static void print_usage() {
   << "/path/to/image -info\n"
   << "/path/to/image.bmp -to_yuv format -o /path/to/new_image.myyuv\n"
   << "/path/to/image.myyuv -compress compression [params...] -o /path/to/new_image.myyuv\n"
-  << "/path/to/image.myyuv -decompress [-o /path/to/new_image.myyuv]\n";
+  << "/path/to/image.myyuv -decompress -o /path/to/new_image.myyuv\n";
+  std::cout << "\nYUV formats:\n";
+  for (const auto& it: format_strings_map) {
+    std::cout << it.first << '\n';
+  }
+  std::cout << "\nCompression formats for YUV:\n";
+  for (const auto& it : compression_strings_map) {
+    std::cout << it.first << '\n';
+  }
 }
 
-static void process_bmp(const myyuv::BMP& bmp, int argi, std::vector<std::string> args) {
+static int process_bmp(const myyuv::BMP& bmp, int argi, const std::vector<std::string>& args) {
   if (args[argi] == "-info") {
-    assert(bmp.isValid());
     std::cout
     << "Type: " << bmp.header.type[0] << bmp.header.type[1] << '\n'
     << "File size: " << bmp.header.file_size << '\n'
@@ -34,31 +71,32 @@ static void process_bmp(const myyuv::BMP& bmp, int argi, std::vector<std::string
     << "Height: " << bmp.header.height << '\n'
     << "Bit count: " << bmp.header.bit_count << '\n'
     << "Valid: " << bmp.isValid() << '\n';
-    return;
+    return 0;
   } else if (args[argi] == "-to_yuv") {
     if (args.size() != argi + 4) {
       std::cout << "Invalid arguments amount. " << (argi + 4) << " is required\n";
       print_usage();
-      return;
+      return 1;
     }
-    if (!mapKeyExist(format_map, args[argi + 1])) {
+    if (!mapKeyExist(format_strings_map, args[argi + 1])) {
       throw std::runtime_error("Format is not registered: " + args[argi + 1]);
     }
     if (args[argi + 2] != "-o") {
       std::cout << (argi + 2) << " argument must be `-o` instead of " << args[argi + 2] << '\n';
       print_usage();
-      return;
+      return 1;
     }
-    myyuv::YUV yuv(bmp, format_map.at(args[argi + 1]));
+    myyuv::YUV yuv(bmp, format_strings_map.at(args[argi + 1]));
     yuv.dump(args[argi + 3]);
+    return 0;
   } else {
     std::cout << "Invalid command " << args[argi] << '\n';
     print_usage();
-    return;
+    return 1;
   }
 }
 
-static void process_yuv(const myyuv::YUV& yuv, int argi, std::vector<std::string> args) {
+static int process_yuv(const myyuv::YUV& yuv, int argi, const std::vector<std::string>& args) {
   if (args[argi] == "-info") {
     std::cout
     << "Type: " << yuv.header.type[0] << yuv.header.type[1] << '\n'
@@ -70,19 +108,58 @@ static void process_yuv(const myyuv::YUV& yuv, int argi, std::vector<std::string
     << "Width: " << yuv.header.width << '\n'
     << "Height: " << yuv.header.height << '\n'
     << "Valid: " << yuv.isValid() << '\n';
-    return;
+    return 0;
   } else if (args[argi] == "-compress") {
-    // TODO:
-    std::cout << "Compression is not implemented yet\n";
-    return;
+    argi++;
+    if (argi >= args.size()) {
+      std::cout << "Invalid arguments. Specify compression algorithm, compression parameters and output.\n";
+      print_usage();
+      return 1;
+    }
+    std::string compression_str = args[argi++];
+    if (!mapKeyExist(compression_strings_map, compression_str)) {
+      throw std::runtime_error("Compression not registered: " + compression_str);
+    }
+    myyuv::YUV::Compression compression = compression_strings_map.at(compression_str);
+    if (!mapKeyExist(compression_map, compression)) {
+      throw std::runtime_error("Compression not registered: " + compression_str);
+    }
+    std::vector<std::string> params;
+    while (argi < args.size() && args[argi] != "-o") {
+      params.push_back(args[argi++]);
+    }
+    argi++;
+    if (argi >= args.size()) {
+      std::cout << "Invalid argument, last arguments must be `-o /path/to/new_image.myyuv`\n";
+      print_usage();
+      return 1;
+    }
+    myyuv::YUV compressed_yuv = compression_map.at(compression)(yuv, params);
+    compressed_yuv.dump(args[argi]);
+    return 0;
   } else if (args[argi] == "-decompress") {
-    // TODO:
-    std::cout << "Decompression is not implemented yet\n";
-    return;
+    if (!yuv.isCompressed()) {
+      std::cout << "Nothing to decompress, image is not compressed\n";
+      return 1;
+    }
+    argi++;
+    if (args.size() != argi + 2) {
+      std::cout << "Invalid arguments amount. " << (argi + 2) << " is required\n";
+      print_usage();
+      return 1;
+    }
+    if (args[argi] != "-o") {
+      std::cout << (argi) << " argument must be `-o` instead of " << args[argi] << '\n';
+      print_usage();
+      return 1;
+    }
+    myyuv::YUV decompressed_yuv = yuv.decompress();
+    decompressed_yuv.dump(args[argi + 1]);
+    return 0;
   } else {
     std::cout << "Invalid command " << args[argi] << '\n';
     print_usage();
-    return;
+    return 1;
   }
 }
 
@@ -105,11 +182,14 @@ static int _main(int argc, char* argv[]) {
   f.close();
   int ret = 0;
   if (std::equal(bmp_header.type, bmp_header.type + sizeof(bmp_header.type), magic)) {
-    process_bmp(myyuv::BMP(path), 2, args);
+    ret = process_bmp(myyuv::BMP(path), 2, args);
   } else if (std::equal(yuv_header.type, yuv_header.type + sizeof(yuv_header.type), magic)) {
-    process_yuv(myyuv::YUV(path), 2, args);
+    ret = process_yuv(myyuv::YUV(path), 2, args);
   } else {
     throw std::runtime_error("Unknown image format (magic) " + path);
+  }
+  if (ret == 0) {
+    std::cout << "Success!\n";
   }
   return ret;
 }

@@ -1,6 +1,7 @@
 #include "viewer.hpp"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <cassert>
 #include <iostream>
 #include <chrono>
 #include <stdexcept>
@@ -23,11 +24,15 @@ static void createPlaneTexture(GLuint shader_program, const GLuint unit, GLuint&
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, width, height, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
   glUniform1i(glGetUniformLocation(shader_program, uniform), unit);
+  glGenerateMipmap(GL_TEXTURE_2D);
 }
 
-int main_yuv(const myyuv::YUV& yuv) {
+int main_yuv(myyuv::YUV yuv) {
   if (!yuv.isValid()) {
     throw std::runtime_error("Invalid yuv");
+  }
+  if (yuv.isCompressed()) {
+    yuv = yuv.decompress();
   }
   // init glfw
   glfwSetErrorCallback(glfw_error_callback);
@@ -80,11 +85,19 @@ int main_yuv(const myyuv::YUV& yuv) {
   glUseProgram(shader_program);
   // create textures
   GLuint y_tex, u_tex, v_tex;
+  GLuint* texes[3] = { &y_tex, &u_tex, &v_tex };
   auto yuv_pointers = yuv.getYUVPlanes();
-  auto yuv_resolution_fractions = yuv.getResolutionFraction();
-  createPlaneTexture(shader_program, 0, y_tex, yuv_pointers[0], yuv.header.width, yuv.header.height, "YTex");
-  createPlaneTexture(shader_program, 1, u_tex, yuv_pointers[1], yuv.header.width / yuv_resolution_fractions[0], yuv.header.height / yuv_resolution_fractions[1], "UTex");
-  createPlaneTexture(shader_program, 2, v_tex, yuv_pointers[2], yuv.header.width / yuv_resolution_fractions[0], yuv.header.height / yuv_resolution_fractions[1], "VTex");
+  assert(yuv_pointers[0] != nullptr && yuv_pointers[1] != nullptr && yuv_pointers[2] != nullptr);
+  uint32_t width_height[3][2];
+  for (uint8_t i = 0; i < 3; i++) {
+    auto tmp = yuv.getWidthHeightChannel(i);
+    width_height[i][0] = tmp[0];
+    width_height[i][1] = tmp[1];
+  }
+  const char* uniforms[3] = { "YTex", "UTex", "VTex" };
+  for (uint32_t i = 0; i < 3; i++) {
+    createPlaneTexture(shader_program, i, *texes[i], yuv_pointers[i], width_height[i][0], width_height[i][1], uniforms[i]);
+  }
   // create VAO
   const GLfloat vertices[] = {
     1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
@@ -118,12 +131,10 @@ int main_yuv(const myyuv::YUV& yuv) {
     }
     glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, y_tex);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, u_tex);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, v_tex);
+    for (uint32_t i = 0; i < 3; i++) {
+      glActiveTexture(GL_TEXTURE0 + i);
+      glBindTexture(GL_TEXTURE_2D, *texes[i]);
+    }
     glUseProgram(shader_program);
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

@@ -10,6 +10,8 @@ set(MY_SRC_FILES
   myyuv_bmp.cpp
   myyuv_yuv.hpp
   myyuv_yuv.cpp
+  myyuv_DCT/DCT.cpp
+  myyuv_DCT/Huffman.cpp
 )
 
 add_library(${PROJECT_NAME} SHARED)

@@ -37,6 +37,9 @@ SDL_Surface* create_surface_from_path(const std::string& path) {
     }
   } else if (std::equal(yuv_header.type, yuv_header.type + sizeof(yuv_header.type), magic)) {
     static myyuv::YUV yuv(path);
+    if (yuv.isCompressed()) {
+      yuv = yuv.decompress();
+    }
     if (!yuv.isValid()) {
       throw std::runtime_error("Invalid yuv");
     }
@@ -61,7 +64,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Error creating surface" << '\n';
     return 1;
   }
-  SDL_Window* win = SDL_CreateWindow("test sdl3", surf->w, surf->h, 0);
+  SDL_Window* win = SDL_CreateWindow("YUV SDL3 Viewer", surf->w, surf->h, 0);
   SDL_Renderer* renderer = SDL_CreateRenderer(win, nullptr);
   assert(renderer);
   SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surf);
