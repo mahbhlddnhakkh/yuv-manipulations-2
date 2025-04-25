@@ -7,7 +7,7 @@
 - SDL3: optional, required for `myyuv_sdl3`
 
 ### Build:
-```
+```bash
 mkdir -p build
 cd build
 cmake -D CMAKE_BUILD_TYPE=RelWithDebInfo ..
@@ -16,11 +16,11 @@ cd ..
 ```
 
 ### Run:
-- myyuv_lib - library for YUV images (+BMP)
-- myyuv_cli - cli tool to create YUV images from BMP images and compress/decompress them
-- myyuv_sdl3 - BMP and YUV image viewer with SDL3 as a backend
-- myyuv_opengl_viewer - BMP and YUV image viewer with OpenGL as a backend
-- myyuv_opengl_spinning_cube - spinning cube (or parallelepiped) with BMP and YUV image as a texture
+- `libmyyuv_lib` - library for YUV images (+BMP)
+- `myyuv_cli` - cli tool to create YUV images from BMP images and compress/decompress them
+- `myyuv_sdl3` - BMP and YUV image viewer with SDL3 as a backend
+- `myyuv_opengl_viewer` - BMP and YUV image viewer with OpenGL as a backend
+- `myyuv_opengl_spinning_cube` - spinning cube (or parallelepiped) with BMP and YUV image as a texture
 
 ### YUV formats:
 - `IYUV`: YUV 4:2:0 with planar storage type.
