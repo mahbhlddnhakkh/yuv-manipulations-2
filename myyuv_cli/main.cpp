@@ -1,4 +1,3 @@
-#include <memory>
 #include <myyuv.hpp>
 #include <iostream>
 #include <fstream>
@@ -7,6 +6,39 @@
 #include <vector>
 #include <unordered_map>
 #include <functional>
+#include <chrono>
+
+class MyTimer {
+public:
+  MyTimer() noexcept {
+    auto current_time = std::chrono::high_resolution_clock::now();
+    _start = current_time;
+    _end = current_time;
+  }
+  void start() noexcept {
+    _start = std::chrono::high_resolution_clock::now();
+  }
+  void end() noexcept {
+    _end = std::chrono::high_resolution_clock::now();
+  }
+  float getDurationMs() const noexcept {
+    return std::chrono::duration_cast<std::chrono::duration<float>>(_end - _start).count();
+  }
+  static float measureTimeMs(std::function<void()> f) {
+    MyTimer timer;
+    timer.start();
+    f();
+    timer.end();
+    return timer.getDurationMs();
+  }
+protected:
+  std::chrono::system_clock::time_point _start;
+  std::chrono::system_clock::time_point _end;
+};
+
+inline static void printTimeMeasurement(float time_ms, const std::string& text = "") {
+  std::cout << text << " : " << time_ms << " ms\n";
+}
 
 template<typename T, typename U>
 inline static bool mapKeyExist(const std::unordered_map<T, U>& map, const T& key) noexcept {
@@ -86,7 +118,10 @@ static int process_bmp(const myyuv::BMP& bmp, int argi, const std::vector<std::s
       print_usage();
       return 1;
     }
-    myyuv::YUV yuv(bmp, format_strings_map.at(args[argi + 1]));
+    myyuv::YUV yuv;
+    printTimeMeasurement(MyTimer::measureTimeMs([&](){
+      yuv = myyuv::YUV(bmp, format_strings_map.at(args[argi + 1]));
+    }), "BMP to YUV (" + args[argi + 1] + ")");
     yuv.dump(args[argi + 3]);
     return 0;
   } else {
@@ -134,7 +169,14 @@ static int process_yuv(const myyuv::YUV& yuv, int argi, const std::vector<std::s
       print_usage();
       return 1;
     }
-    myyuv::YUV compressed_yuv = compression_map.at(compression)(yuv, params);
+    myyuv::YUV compressed_yuv;
+    std::string params_as_string = " ";
+    for (const auto& p : params) {
+      params_as_string += p + " ";
+    }
+    printTimeMeasurement(MyTimer::measureTimeMs([&](){
+      compressed_yuv = compression_map.at(compression)(yuv, params);
+    }), "YUV DCT compression (" + params_as_string + ")");
     compressed_yuv.dump(args[argi]);
     return 0;
   } else if (args[argi] == "-decompress") {
@@ -153,7 +195,10 @@ static int process_yuv(const myyuv::YUV& yuv, int argi, const std::vector<std::s
       print_usage();
       return 1;
     }
-    myyuv::YUV decompressed_yuv = yuv.decompress();
+    myyuv::YUV decompressed_yuv;
+    printTimeMeasurement(MyTimer::measureTimeMs([&](){
+      decompressed_yuv = yuv.decompress();
+    }), "YUV DCT decompression");
     decompressed_yuv.dump(args[argi + 1]);
     return 0;
   } else {

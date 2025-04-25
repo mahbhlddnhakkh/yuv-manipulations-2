@@ -7,6 +7,10 @@
 #include <cmath>
 #include <algorithm>
 #include <vector>
+#ifdef MYYUV_USE_OPENMP
+#include <omp.h>
+#define OMP_NESTED TRUE
+#endif
 
 namespace {
 
@@ -289,6 +293,9 @@ static void applyDCTPlane(DCTYUVPlane& res, const uint8_t* data, uint32_t width,
   res.chunks_sizes_size = width * height / 64;
   res.chunks_sizes = new uint8_t[res.chunks_sizes_size];
   uint8_t** contents = new uint8_t*[res.chunks_sizes_size];
+#ifdef MYYUV_USE_OPENMP
+  #pragma omp parallel for collapse(2)
+#endif
   for (uint32_t j = 0; j < height; j += 8) {
     for (uint32_t i = 0; i < width; i += 8) {
       int16_t block_res[64];
@@ -340,6 +347,9 @@ static void restoreDCTPlane(uint8_t* res, const DCTYUVPlane& dct, uint32_t width
     q_table[i] = std::clamp(std::round(q_50_table[i] * q_table_mul), 1.0f, 255.0f);
   }
   std::vector<uint32_t> contents = dct.getContentPos();
+#ifdef MYYUV_USE_OPENMP
+  #pragma omp parallel for collapse(2)
+#endif
   for (uint32_t j = 0; j < height; j += 8) {
     for (uint32_t i = 0; i < width; i += 8) {
       const uint32_t k = (i + j * width / 8) / 8;
@@ -356,7 +366,7 @@ static void restoreDCTPlane(uint8_t* res, const DCTYUVPlane& dct, uint32_t width
 
 namespace myyuv {
 
-YUV compress_DCT_planar(const YUV& yuv, std::array<uint8_t, 3> params) {
+YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
   if (yuv.getFormatGroup() != YUV::FormatGroup::PLANAR) {
     throw std::runtime_error("Error compressing: YUV must be planar");
   }
@@ -384,6 +394,9 @@ YUV compress_DCT_planar(const YUV& yuv, std::array<uint8_t, 3> params) {
   std::copy(params.data(), params.data() + 3, res.compression_params);
   static constexpr const float* tables[3] = { lum_q_table, chroma_q_table, chroma_q_table };
   DCTYUV dct;
+#ifdef MYYUV_USE_OPENMP
+  #pragma omp parallel for
+#endif
   for (uint8_t i = 0; i < 3; i++) {
     auto width_height = yuv.getWidthHeightChannel(i);
     applyDCTPlane(dct.planes[i], planes[i], width_height[0], width_height[1], params[i], tables[i]);
@@ -394,7 +407,7 @@ YUV compress_DCT_planar(const YUV& yuv, std::array<uint8_t, 3> params) {
   return res;
 }
 
-YUV decompress_DCT_planar(const YUV& yuv, std::array<uint8_t, 3> params) {
+YUV decompress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
   if (yuv.getFormatGroup() != YUV::FormatGroup::PLANAR) {
     throw std::runtime_error("Error decompressing: YUV must be planar");
   }
@@ -422,6 +435,9 @@ YUV decompress_DCT_planar(const YUV& yuv, std::array<uint8_t, 3> params) {
   assert(YUV::max_planes == 3 || YUV::max_planes > 3 && planes[3] == nullptr); // Transparency is not supported
   assert(planes[0] != nullptr && planes[1] != nullptr && planes[2] != nullptr); // not ready to handle when one plane is missing
   static constexpr const float* tables[3] = { lum_q_table, chroma_q_table, chroma_q_table };
+#ifdef MYYUV_USE_OPENMP
+  #pragma omp parallel for
+#endif
   for (uint8_t i = 0; i < 3; i++) {
     auto width_height = yuv.getWidthHeightChannel(i);
     restoreDCTPlane(planes[i], dct.planes[i], width_height[0], width_height[1], params[i], tables[i]);

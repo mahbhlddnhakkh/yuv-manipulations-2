@@ -4,7 +4,9 @@
 #include <GLFW/glfw3.h>
 #include <myyuv.hpp>
 
-void glfw_error_callback(GLint error, const GLchar* desc);
+void create_rectangle(GLuint& VAO, GLuint& VBO, GLuint& EBO);
+
+void handle_events(GLFWwindow* window);
 
 int main_bmp(const myyuv::BMP& bmp);
 

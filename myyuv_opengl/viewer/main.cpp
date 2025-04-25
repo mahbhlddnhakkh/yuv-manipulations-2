@@ -1,7 +1,7 @@
-#include "myyuv_bmp.hpp"
 #include "viewer.hpp"
+
+#include <myyuv_opengl_shared.hpp>
 #include <iostream>
-#include <fstream>
 #include <stdexcept>
 
 int main(int argc, char* argv[]) {
@@ -9,24 +9,18 @@ int main(int argc, char* argv[]) {
     std::cout << "Usage: " << "/path/to/image.myyuv\n";
     return 0;
   }
-  myyuv::BMPHeader bmp_header;
-  myyuv::YUVHeader yuv_header;
-  const uint32_t magic_size = std::max(sizeof(bmp_header.type), sizeof(yuv_header.type));
-  uint8_t magic[magic_size];
+  int ret = 0;
   const std::string path = argv[1];
-  std::ifstream f(path, std::ios::binary);
-  if (!f) {
-    throw std::runtime_error("Error opening file to read " + path);
-  }
-  f.read(reinterpret_cast<char*>(magic), sizeof(magic));
-  f.close();
-  int ret;
-  if (std::equal(bmp_header.type, bmp_header.type + sizeof(bmp_header.type), magic)) {
-    ret = main_bmp(myyuv::BMP(path));
-  } else if (std::equal(yuv_header.type, yuv_header.type + sizeof(yuv_header.type), magic)) {
-    ret = main_yuv(myyuv::YUV(path));
-  } else {
-    throw std::runtime_error("Unknown image format (magic) " + path);
+  IMAGE_FORMAT format = figure_out_format_magic(path);
+  switch(format) {
+    case IMAGE_FORMAT::BMP:
+      ret = main_bmp(myyuv::BMP(path));
+      break;
+    case IMAGE_FORMAT::YUV:
+      ret = main_yuv(myyuv::YUV(path));
+      break;
+    default:
+      throw std::runtime_error("Unknown image format (magic) " + path);
   }
   return ret;
 }

@@ -1,6 +1,8 @@
 #include "viewer.hpp"
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <myyuv_opengl_shared.hpp>
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -18,7 +20,6 @@ int main_bmp(const myyuv::BMP& bmp) {
   if (!bmp.isValid()) {
     throw std::runtime_error("Invalid bmp");
   }
-  assert(bmp.header.width > 0 && bmp.header.height > 0);
   // init glfw
   glfwSetErrorCallback(glfw_error_callback);
   glfwInit();
@@ -35,78 +36,22 @@ int main_bmp(const myyuv::BMP& bmp) {
     return -1;
   }
   // load shaders
-  GLuint vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertex_shader, 1, &vertex_shader_src, nullptr);
-  glCompileShader(vertex_shader);
-  GLint shader_compile_success;
-  GLchar shader_compile_log[512];
-  glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &shader_compile_success);
-  if (!shader_compile_success) {
-    glGetShaderInfoLog(vertex_shader, 512, nullptr, shader_compile_log);
-    std::cout << "Error. Failed to compile vertex shader\n" << shader_compile_log << '\n';
-    return -1;
+  GLuint shader_program;
+  int shader_program_res = create_shader_program(shader_program, vertex_shader_src, fragment_shader_src);
+  if (shader_program_res != 0) {
+    // error happened
+    return shader_program_res;
   }
-  GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragment_shader, 1, &fragment_shader_src, nullptr);
-  glCompileShader(fragment_shader);
-  glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &shader_compile_success);
-  if (!shader_compile_success) {
-    glGetShaderInfoLog(fragment_shader, 512, nullptr, shader_compile_log);
-    std::cout << "Error. Failed to compile fragment shader\n" << shader_compile_log << '\n';
-    return -1;
-  }
-  GLuint shader_program = glCreateProgram();
-  glAttachShader(shader_program, vertex_shader);
-  glAttachShader(shader_program, fragment_shader);
-  glLinkProgram(shader_program);
-  glGetShaderiv(shader_program, GL_LINK_STATUS, &shader_compile_success);
-  if (!shader_compile_success) {
-    glGetShaderInfoLog(shader_program, 512, nullptr, shader_compile_log);
-    std::cout << "Error. Failed to link shader program\n" << shader_compile_log << '\n';
-    return -1;
-  }
-  glDeleteShader(vertex_shader);
-  glDeleteShader(fragment_shader);
   // create texture
-  GLuint texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bmp.trueWidth(), bmp.trueHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bmp.data);
-  glGenerateMipmap(GL_TEXTURE_2D);
-  // create VAO
-  const GLfloat vertices[] = {
-    1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
-    1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-    -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-    -1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
-  };
-  GLuint indices[] = {
-    0, 1, 3,
-    1, 2, 3,
-  };
-  GLuint VAO;
-  GLuint VBO;
-  GLuint EBO;
-  glGenVertexArrays(1, &VAO);
-  glGenBuffers(1, &VBO);
-  glGenBuffers(1, &EBO);
-  glBindVertexArray(VAO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), 0);
-  glEnableVertexAttribArray(0);
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), reinterpret_cast<void*>(3 * sizeof(GLfloat)));
-  glEnableVertexAttribArray(1);
+  GLuint texture = create_bmp_texture(bmp);
+  // create rect
+  GLuint VAO, VBO, EBO;
+  create_rectangle(VAO, VBO, EBO);
   // main loop
-  while (!glfwWindowShouldClose(window)) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-      glfwSetWindowShouldClose(window, true);
+  while (true) {
+    handle_events(window);
+    if (glfwWindowShouldClose(window)) {
+      break;
     }
     glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -124,6 +69,7 @@ int main_bmp(const myyuv::BMP& bmp) {
   glDeleteBuffers(1, &EBO);
   glDeleteProgram(shader_program);
   glDeleteTextures(1, &texture);
+  glfwDestroyWindow(window);
   glfwTerminate();
   return 0;
 }
