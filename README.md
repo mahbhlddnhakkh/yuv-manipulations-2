@@ -26,7 +26,7 @@ You can also use `-D MYYUV_USE_OPENMP=ON` to build with OpenMP support for paral
 
 ## Run:
 ### `libmyyuv_lib`
-A library for YUV and BMP images.
+A library for YUV and BMP images. Note: compression works only with images whose width and height are divisible integer by 16. For YUV (IYUV) conversion image width and height must be a divisible integer by 2.
 
 ### `myyuv_cli`
 A cli tool to create YUV images from BMP images and compress/decompress them.
@@ -34,10 +34,10 @@ A cli tool to create YUV images from BMP images and compress/decompress them.
 
 ```
 Usage:
-/path/to/image -info
-/path/to/image.bmp -to_yuv format -o /path/to/new_image.myyuv
-/path/to/image.myyuv -compress compression [params...] -o /path/to/new_image.myyuv
-/path/to/image.myyuv -decompress -o /path/to/new_image.myyuv
+myyuv_cli /path/to/image -info
+myyuv_cli /path/to/image.bmp -to_yuv format -o /path/to/new_image.myyuv
+myyuv_cli /path/to/image.myyuv -compress compression [params...] -o /path/to/new_image.myyuv
+myyuv_cli /path/to/image.myyuv -decompress -o /path/to/new_image.myyuv
 
 YUV formats:
 IYUV
@@ -45,15 +45,21 @@ IYUV
 Compression formats for YUV:
 DCT
 ```
+For example:
+```
+myyuv_cli /path/to/image.bmp -to_yuv IYUV -o /path/to/new_image.myyuv
+myyuv_cli /path/to/image.myyuv -compress DCT 50 -o /path/to/new_image.myyuv
+```
 
 </details>
 
 ### `myyuv_sdl3`
-A BMP and YUV image viewer with SDL3 as a backend.
+A BMP and YUV image viewer with SDL3 as a backend. Press ESCAPE to exit.
 <details><summary>myyuv_sdl3 usage</summary>
 
 ```
-Usage: /path/to/image.myyuv
+Usage:
+myyuv_sdl3 /path/to/image.myyuv
 ```
 
 </details>
@@ -62,25 +68,26 @@ Usage: /path/to/image.myyuv
 A shared library for OpenGL programs for shared functionality.
 
 ### `myyuv_opengl_viewer`
-A BMP and YUV image viewer with OpenGL as a backend.
+A BMP and YUV image viewer with OpenGL as a backend. Press ESCAPE to exit.
 
 <details><summary>myyuv_opengl_viewer usage</summary>
 
 ```
-Usage: /path/to/image.myyuv
+Usage:
+myyuv_opengl_viewer /path/to/image.myyuv
 ```
 
 </details>
 
 ### `myyuv_opengl_spinning_cube`
-A spinning cube (or parallelepiped) with BMP and YUV image as a texture.
+A spinning cube (or parallelepiped) with BMP and YUV image as a texture. Move around with WASD, look around with arrow keys, fly up with SPACE and fly down with SHIFT. The camera is an airplane-like. Press ESCAPE to exit.
 <details><summary>myyuv_opengl_spinning_cube usage</summary>
 
 ```
 Usage:
-/path/to/image.myyuv
--force_cube /path/to/image.myyuv
--flip_width_height /path/to/image.myyuv
+myyuv_opengl_spinning_cube /path/to/image.myyuv
+myyuv_opengl_spinning_cube -force_cube /path/to/image.myyuv
+myyuv_opengl_spinning_cube -flip_width_height /path/to/image.myyuv
 ```
 
 </details>

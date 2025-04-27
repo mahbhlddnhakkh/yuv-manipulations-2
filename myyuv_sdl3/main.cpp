@@ -1,4 +1,3 @@
-#include <SDL3/SDL_pixels.h>
 #include <myyuv.hpp>
 #include <SDL3/SDL.h>
 #include <iostream>
@@ -81,6 +80,11 @@ int main(int argc, char* argv[]) {
       switch(event.type) {
         case SDL_EVENT_QUIT:
           close = true;
+          break;
+        case SDL_EVENT_KEY_UP:
+          if (event.key.scancode == SDL_SCANCODE_ESCAPE) {
+            close = true;
+          }
           break;
       }
     }
