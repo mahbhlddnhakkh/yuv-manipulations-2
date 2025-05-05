@@ -1,20 +1,22 @@
 #include "spinning_cube.hpp"
 
 #include <myyuv_opengl_shared.hpp>
+#include <stdexcept>
 #include <type_traits>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <cassert>
 #include <algorithm>
+#include <cstdlib>
+#include <cmath>
 
 // init constants
 //
-const size_t SCREEN_WIDTH = 800;
-const size_t SCREEN_HEIGHT = 600;
+const size_t shapes_count_max = 1000;
+const size_t SCREEN_WIDTH = 1000;
+const size_t SCREEN_HEIGHT = 800;
 const float cube_rotation_speed = 15.0f;
-const glm::mat4 projection = glm::perspective(glm::radians(45.0f), static_cast<GLfloat>(SCREEN_WIDTH) / static_cast<GLfloat>(SCREEN_HEIGHT), 0.1f, 100.0f);
-const glm::vec3 cube_pos = glm::vec3(0.0f, 0.0f, 0.0f);
-const glm::vec3 initial_camera_pos = glm::vec3(0.0f, 0.0f, 3.0f);
+const glm::mat4 projection = glm::perspective(glm::radians(45.0f), static_cast<GLfloat>(SCREEN_WIDTH) / static_cast<GLfloat>(SCREEN_HEIGHT), 0.1f, 150.0f);
 
 // TimeDelta
 //
@@ -53,9 +55,9 @@ void Camera::move(int x, int y, int z, GLfloat delta) {
   pos += up * direction[1] * vel;
 }
 
-void Camera::turn(int x, int y) {
-  GLfloat x_offset = sgn(x) * sensitivity;
-  GLfloat y_offset = sgn(y) * sensitivity;
+void Camera::turn(int x, int y, GLfloat delta) {
+  GLfloat x_offset = sgn(x) * sensitivity * delta * 10.0f;
+  GLfloat y_offset = sgn(y) * sensitivity * delta * 10.0f;
   yaw += x_offset;
   pitch += y_offset;
   pitch = std::clamp(pitch, -89.9f, 89.9f);
@@ -267,7 +269,45 @@ void handle_events(GLFWwindow* window, Camera& camera, GLfloat delta) {
     view_y--;
   }
   // apply to camera
-  camera.turn(view_x, view_y);
+  camera.turn(view_x, view_y, delta);
   camera.move(x, y, z, delta);
   camera.update();
+}
+
+double get_sphere_generation_radius(size_t shapes_count) {
+  // Because it works
+  const double tmp = std::log(static_cast<double>(shapes_count));
+  return tmp * tmp * 0.5;
+}
+
+static inline GLfloat generate_rand(double min, double max) {
+  assert(min <= max);
+  constexpr double rand_max_more = static_cast<double>(RAND_MAX) + 1.0;
+  return (static_cast<double>(std::rand()) / (rand_max_more) * (max - min + 1.0) + min);
+}
+
+CubeData generate_random_cube_pos(const std::vector<CubeData>& cubes, double radius) {
+  CubeData res;
+  size_t i = 0;
+  constexpr size_t i_max = 1000;
+  const float two_radius = std::sqrt(3.0f) * 2.0f;
+  while(i < i_max) {
+    glm::vec3 tmp = { generate_rand(-radius, radius), generate_rand(-radius, radius), generate_rand(-radius, radius) };
+    bool is_good = true;
+    for (const auto& cube : cubes) {
+      if (glm::distance(tmp, cube.pos) <= two_radius) {
+        is_good = false;
+        break;
+      }
+    }
+    if (is_good) {
+      res.pos = tmp;
+      break;
+    }
+    i++;
+  }
+  if (i == i_max) {
+    throw std::runtime_error("Unable to generate new position");
+  }
+  return res;
 }

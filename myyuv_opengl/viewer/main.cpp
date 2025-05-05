@@ -6,7 +6,9 @@
 
 int main(int argc, char* argv[]) {
   if (argc <= 1 || argc > 2) {
-    std::cout << "Usage: " << "/path/to/image.myyuv\n";
+    std::cout << "A BMP and YUV image viewer with OpenGL as a backend. Press ESCAPE to exit.\n"
+    << "Usage:\n"
+    << "myyuv_opengl_viewer /path/to/image.myyuv\n";
     return 0;
   }
   int ret = 0;

@@ -34,10 +34,10 @@ A cli tool to create YUV images from BMP images and compress/decompress them.
 
 ```
 Usage:
-myyuv_cli /path/to/image -info
-myyuv_cli /path/to/image.bmp -to_yuv format -o /path/to/new_image.myyuv
-myyuv_cli /path/to/image.myyuv -compress compression [params...] -o /path/to/new_image.myyuv
-myyuv_cli /path/to/image.myyuv -decompress -o /path/to/new_image.myyuv
+`myyuv_cli /path/to/image -info` - prints info about BMP or YUV image `/path/to/image`
+`myyuv_cli /path/to/image.bmp -to_yuv format -o /path/to/new_image.myyuv` - creates YUV image from BMP image `/path/to/image.bmp` with `format` format and saves at `/path/to/new_image.myyuv`
+`myyuv_cli /path/to/image.myyuv -compress compression [params...] -o /path/to/new_image.myyuv` - compresses YUV image `/path/to/image.myyuv` with `compression` using `params...` and saves at `/path/to/new_image.myyuv`
+`myyuv_cli /path/to/image.myyuv -decompress -o /path/to/new_image.myyuv` - decompresses YUV image `/path/to/image.myyuv` and saves at `/path/to/new_image.myyuv`
 
 YUV formats:
 IYUV
@@ -85,9 +85,15 @@ A spinning cube (or parallelepiped) with BMP and YUV image as a texture. Move ar
 
 ```
 Usage:
-myyuv_opengl_spinning_cube /path/to/image.myyuv
-myyuv_opengl_spinning_cube -force_cube /path/to/image.myyuv
-myyuv_opengl_spinning_cube -flip_width_height /path/to/image.myyuv
+myyuv_opengl_spinning_cube /path/to/image.myyuv [params]
+Params:
+`-shapes n` - creates `n` shapes, where `n` is a number between 1 and 1000
+`-force_cube` - forces shape with texture into a cube even if the image width and height are not equal
+`-flip_width_height` - flips width and height of a texture. This will affect only the shape. Does nothing if the shape is cube
+```
+For example:
+```
+myyuv_opengl_spinning_cube /path/to/image.myyuv -force_cube -shapes 10
 ```
 
 </details>

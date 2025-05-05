@@ -19,7 +19,8 @@ static const char* fragment_shader_src = {
 #include "frag_yuv.glsl"
 };
 
-int main_yuv(myyuv::YUV yuv, bool force_cube, bool flip_w_h) {
+int main_yuv(myyuv::YUV yuv, bool force_cube, bool flip_w_h, size_t shapes_count) {
+  assert(shapes_count >= 1 && shapes_count <= shapes_count_max);
   if (!yuv.isValid()) {
     throw std::runtime_error("Invalid yuv");
   }
@@ -62,12 +63,18 @@ int main_yuv(myyuv::YUV yuv, bool force_cube, bool flip_w_h) {
     }
   }
   // setup camera
+  const double generation_radius = get_sphere_generation_radius(shapes_count);
   glUniformMatrix4fv(glGetUniformLocation(shader_program, "projection"), 1, GL_FALSE, &projection[0][0]);
   Camera camera;
-  camera.pos = initial_camera_pos;
+  camera.pos = glm::vec3(generation_radius + 3.0f, 0.0f, generation_radius + 3.0f);
+  camera.yaw = -135.0f;
   camera.update();
+  // setup cubes
+  std::vector<CubeData> cubes(shapes_count);
+  for (size_t i = 1; i < shapes_count; i++) {
+    cubes[i] = generate_random_cube_pos(cubes, generation_radius);
+  }
   // setup the rest
-  float angle = 0.0f;
   TimerDelta timer_delta;
   while (true) {
     // delta time
@@ -88,18 +95,20 @@ int main_yuv(myyuv::YUV yuv, bool force_cube, bool flip_w_h) {
     glm::mat4 view = camera.getView();
     glUniformMatrix4fv(glGetUniformLocation(shader_program, "view"), 1, GL_FALSE, &view[0][0]);
     glBindVertexArray(VAO);
-    glm::mat4 model = glm::mat4(1.0f);
-    // move the cube
-    model = glm::translate(model, cube_pos);
-    // make the cube spin
-    angle += cube_rotation_speed * delta;
-    normalize_angle(angle);
-    model = glm::rotate(model, glm::radians(angle), glm::vec3(0.0f, 1.0f, 0.0f));
-    glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, &model[0][0]);
-    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    for (auto& cube : cubes) {
+      glm::mat4 model = glm::mat4(1.0f);
+      // move the cube
+      model = glm::translate(model, cube.pos);
+      // make the cube spin
+      cube.angle += cube_rotation_speed * delta;
+      normalize_angle(cube.angle);
+      model = glm::rotate(model, glm::radians(cube.angle), glm::vec3(0.0f, 1.0f, 0.0f));
+      glUniformMatrix4fv(glGetUniformLocation(shader_program, "model"), 1, GL_FALSE, &model[0][0]);
+      glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    }
     glfwSwapBuffers(window);
     glfwPollEvents();
-    std::this_thread::sleep_for(std::chrono::milliseconds(40));
+    //std::this_thread::sleep_for(std::chrono::milliseconds(40));
   }
   // cleanup
   glDeleteVertexArrays(1, &VAO);

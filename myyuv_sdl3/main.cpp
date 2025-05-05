@@ -51,7 +51,9 @@ SDL_Surface* create_surface_from_path(const std::string& path) {
 
 int main(int argc, char* argv[]) {
   if (argc <= 1 || argc > 2) {
-    std::cout << "Usage: " << "/path/to/image.myyuv\n";
+    std::cout << "A BMP and YUV image viewer with SDL3 as a backend. Press ESCAPE to exit.\n"
+    << "Usage:\n"
+    << "myyuv_sdl3 /path/to/image.myyuv\n";
     return 0;
   }
   if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS)) {

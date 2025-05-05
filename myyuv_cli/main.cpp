@@ -78,11 +78,12 @@ static std::unordered_map<myyuv::YUV::Compression, std::function<myyuv::YUV(cons
 };
 
 static void print_usage() {
-  std::cout << "Usage:\n"
-  << "/path/to/image -info\n"
-  << "/path/to/image.bmp -to_yuv format -o /path/to/new_image.myyuv\n"
-  << "/path/to/image.myyuv -compress compression [params...] -o /path/to/new_image.myyuv\n"
-  << "/path/to/image.myyuv -decompress -o /path/to/new_image.myyuv\n";
+  std::cout << "A cli tool to create YUV images from BMP images and compress/decompress them.\n"
+  << "Usage:\n"
+  << "`myyuv_cli /path/to/image -info` - prints info about BMP or YUV image `/path/to/image`\n"
+  << "`myyuv_cli /path/to/image.bmp -to_yuv format -o /path/to/new_image.myyuv` - creates YUV image from BMP image `/path/to/image.bmp` with `format` format and saves at `/path/to/new_image.myyuv`\n"
+  << "`myyuv_cli /path/to/image.myyuv -compress compression [params...] -o /path/to/new_image.myyuv` - compresses YUV image `/path/to/image.myyuv` with `compression` using `params...` and saves at `/path/to/new_image.myyuv`\n"
+  << "`myyuv_cli /path/to/image.myyuv -decompress -o /path/to/new_image.myyuv` - decompresses YUV image `/path/to/image.myyuv` and saves at `/path/to/new_image.myyuv`\n";
   std::cout << "\nYUV formats:\n";
   for (const auto& it: format_strings_map) {
     std::cout << it.first << '\n';
@@ -91,9 +92,12 @@ static void print_usage() {
   for (const auto& it : compression_strings_map) {
     std::cout << it.first << '\n';
   }
+  std::cout << "\nFor example:\n"
+  << "myyuv_cli /path/to/image.bmp -to_yuv IYUV -o /path/to/new_image.myyuv\n"
+  << "myyuv_cli /path/to/image.myyuv -compress DCT 50 -o /path/to/new_image.myyuv\n";
 }
 
-static int process_bmp(const myyuv::BMP& bmp, int argi, const std::vector<std::string>& args) {
+static int process_bmp(const myyuv::BMP& bmp, size_t argi, const std::vector<std::string>& args) {
   if (args[argi] == "-info") {
     std::cout
     << "Type: " << bmp.header.type[0] << bmp.header.type[1] << '\n'
@@ -131,7 +135,7 @@ static int process_bmp(const myyuv::BMP& bmp, int argi, const std::vector<std::s
   }
 }
 
-static int process_yuv(const myyuv::YUV& yuv, int argi, const std::vector<std::string>& args) {
+static int process_yuv(const myyuv::YUV& yuv, size_t argi, const std::vector<std::string>& args) {
   if (args[argi] == "-info") {
     std::cout
     << "Type: " << yuv.header.type[0] << yuv.header.type[1] << '\n'
