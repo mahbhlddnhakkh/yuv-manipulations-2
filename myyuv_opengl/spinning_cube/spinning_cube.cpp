@@ -276,8 +276,7 @@ void handle_events(GLFWwindow* window, Camera& camera, GLfloat delta) {
 
 double get_sphere_generation_radius(size_t shapes_count) {
   // Because it works
-  const double tmp = std::log(static_cast<double>(shapes_count));
-  return tmp * tmp * 0.5;
+  return std::sqrt(static_cast<double>(shapes_count));
 }
 
 static inline GLfloat generate_rand(double min, double max) {
