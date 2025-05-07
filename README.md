@@ -27,6 +27,20 @@ You can also use `-D MYYUV_USE_OPENMP=ON` to build with OpenMP support for paral
 ## Run:
 ### `libmyyuv_lib`
 A library for YUV and BMP images. Note: compression works only with images whose width and height are divisible integer by 16. For YUV (IYUV) conversion image width and height must be a divisible integer by 2.
+<details><summary>libmyyuv_lib: myyuv.hpp</summary>
+
+```cpp
+// BMP
+struct BMPHeader;
+struct BMPColorHeader;
+struct BMP;
+
+// YUV
+struct YUVHeader;
+struct YUV;
+```
+
+</details>
 
 ### `myyuv_cli`
 A cli tool to create YUV images from BMP images and compress/decompress them.
