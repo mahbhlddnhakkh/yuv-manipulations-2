@@ -420,7 +420,7 @@ void YUV::load(const std::string& path) {
     res.compression_params = new uint8_t[res.header.compression_params_size];
     f.read(reinterpret_cast<char*>(res.compression_params), res.header.compression_params_size);
   }
-  f.seekg(res.header.data_pos);
+  f.seekg(res.header.data_pos, f.beg);
   res.header.compression_params_pos = sizeof(res.header);
   res.header.data_pos = res.header.compression_params_pos + res.header.compression_params_size;
   if (res.getCompression() == Compression::NONE) {
