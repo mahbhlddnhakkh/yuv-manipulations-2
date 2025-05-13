@@ -9,7 +9,6 @@
 #include <vector>
 #ifdef MYYUV_USE_OPENMP
 #include <omp.h>
-#define OMP_NESTED TRUE
 #endif
 
 namespace {
@@ -294,7 +293,7 @@ static void applyDCTPlane(DCTYUVPlane& res, const uint8_t* data, uint32_t width,
   res.chunks_sizes = new uint8_t[res.chunks_sizes_size];
   uint8_t** contents = new uint8_t*[res.chunks_sizes_size];
 #ifdef MYYUV_USE_OPENMP
-  #pragma omp parallel for collapse(2)
+  #pragma omp parallel for schedule(dynamic, 1) collapse(2)
 #endif
   for (uint32_t j = 0; j < height; j += 8) {
     for (uint32_t i = 0; i < width; i += 8) {
@@ -348,7 +347,7 @@ static void restoreDCTPlane(uint8_t* res, const DCTYUVPlane& dct, uint32_t width
   }
   std::vector<uint32_t> contents = dct.getContentPos();
 #ifdef MYYUV_USE_OPENMP
-  #pragma omp parallel for collapse(2)
+  #pragma omp parallel for schedule(dynamic, 1) collapse(2)
 #endif
   for (uint32_t j = 0; j < height; j += 8) {
     for (uint32_t i = 0; i < width; i += 8) {
@@ -395,6 +394,8 @@ YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
   static constexpr const float* tables[3] = { lum_q_table, chroma_q_table, chroma_q_table };
   DCTYUV dct;
 #ifdef MYYUV_USE_OPENMP
+  int omp_nested_prev = omp_get_nested();
+  omp_set_nested(1);
   #pragma omp parallel for
 #endif
   for (uint8_t i = 0; i < 3; i++) {
@@ -402,6 +403,9 @@ YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
     applyDCTPlane(dct.planes[i], planes[i], width_height[0], width_height[1], params[i], tables[i]);
     dct.planes_sizes[i] = dct.planes[i].totalSize();
   }
+#ifdef MYYUV_USE_OPENMP
+  omp_set_nested(omp_nested_prev);
+#endif
   res.header.data_size = dct.totalSize();
   res.data = dct.dump();
   return res;
@@ -436,12 +440,17 @@ YUV decompress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) 
   assert(planes[0] != nullptr && planes[1] != nullptr && planes[2] != nullptr); // not ready to handle when one plane is missing
   static constexpr const float* tables[3] = { lum_q_table, chroma_q_table, chroma_q_table };
 #ifdef MYYUV_USE_OPENMP
+  int omp_nested_prev = omp_get_nested();
+  omp_set_nested(1);
   #pragma omp parallel for
 #endif
   for (uint8_t i = 0; i < 3; i++) {
     auto width_height = yuv.getWidthHeightChannel(i);
     restoreDCTPlane(planes[i], dct.planes[i], width_height[0], width_height[1], params[i], tables[i]);
   }
+#ifdef MYYUV_USE_OPENMP
+  omp_set_nested(omp_nested_prev);
+#endif
   return res;
 }
 
