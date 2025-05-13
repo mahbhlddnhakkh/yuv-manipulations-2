@@ -28,8 +28,8 @@ struct Huffman {
   std::bitset<512> encoded_data;
   std::map<uint8_t, std::set<int16_t>> tree_data;
   Huffman() {}
-  Huffman(Huffman&& huffman);
-  Huffman& operator=(Huffman&& huffman);
+  Huffman(Huffman&& huffman) noexcept;
+  Huffman& operator=(Huffman&& huffman) noexcept;
   static Huffman fromData(const int16_t data[64]);
   static Huffman fromDump(const uint8_t* data, uint8_t size);
   void dump(uint8_t*& res_data, uint8_t& res_size) const;

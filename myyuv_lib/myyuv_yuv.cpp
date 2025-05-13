@@ -11,7 +11,7 @@ namespace myyuv {
 
 // https://stackoverflow.com/a/58568736
 template <typename T>
-static T divide_roundnearest(T numer, T denom) {
+static T divide_roundnearest(T numer, T denom) noexcept {
   static_assert(std::numeric_limits<T>::is_integer, "Only integer types are allowed");
 
   T result = ((numer) < 0) != ((denom) < 0) ?
@@ -38,7 +38,7 @@ std::unordered_map<YUV::FourccFormat, std::array<uint32_t, 2>> YUV::yuv_resoluti
   { FourccFormat::IYUV, { 2, 2 } },
 };
 
-static inline void getYUV444FromRGB2x2(uint8_t yuv444[12], uint32_t i, uint32_t j, const uint8_t* rbg, uint32_t width, uint32_t pixel_bits) {
+static inline void getYUV444FromRGB2x2(uint8_t yuv444[12], uint32_t i, uint32_t j, const uint8_t* rbg, uint32_t width, uint32_t pixel_bits) noexcept {
   const uint32_t pixel_bytes = pixel_bits / 8;
   const uint32_t loc = i + j * width;
   const uint32_t loc_down = loc + width;

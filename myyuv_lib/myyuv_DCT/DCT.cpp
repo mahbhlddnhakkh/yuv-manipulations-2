@@ -232,7 +232,7 @@ static constexpr const float DCT_matrix8[64] = {
 };
 
 template<int size>
-static void squareMatrixMul(const float a[size * size], const float b[size * size], float c[size * size]) {
+static void squareMatrixMul(const float a[size * size], const float b[size * size], float c[size * size]) noexcept {
   std::fill_n(c, size * size, 0.0f);
   for (int i = 0; i < size; i++) {
     for (int k = 0; k < size; k++) {
@@ -244,7 +244,7 @@ static void squareMatrixMul(const float a[size * size], const float b[size * siz
 }
 
 template<int size>
-static void squareMatrixMulT(const float a[size * size], const float bT[size * size], float c[size * size]) {
+static void squareMatrixMulT(const float a[size * size], const float bT[size * size], float c[size * size]) noexcept {
   std::fill_n(c, size * size, 0.0f);
   for (int i = 0; i < size; i++) {
     for (int k = 0; k < size; k++) {
@@ -256,7 +256,7 @@ static void squareMatrixMulT(const float a[size * size], const float bT[size * s
 }
 
 template<int size>
-static void squareMatrixMulT2(const float aT[size * size], const float b[size * size], float c[size * size]) {
+static void squareMatrixMulT2(const float aT[size * size], const float b[size * size], float c[size * size]) noexcept {
   std::fill_n(c, size * size, 0.0f);
   for (int i = 0; i < size; i++) {
     for (int k = 0; k < size; k++) {
@@ -268,7 +268,7 @@ static void squareMatrixMulT2(const float aT[size * size], const float b[size * 
 }
 
 // data_block will be lost!
-static void applyDCTBlock(float data_block[64], int16_t res[64], const float q_table[64]) {
+static void applyDCTBlock(float data_block[64], int16_t res[64], const float q_table[64]) noexcept {
   float data_block_2[64];
   squareMatrixMul<8>(DCT_matrix8, data_block, data_block_2);
   squareMatrixMulT<8>(data_block_2, DCT_matrix8, data_block);
@@ -399,13 +399,19 @@ YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
   #pragma omp parallel for
 #endif
   for (uint8_t i = 0; i < 3; i++) {
+#ifdef MYYUV_USE_OPENMP
+    try {
+#endif
     auto width_height = yuv.getWidthHeightChannel(i);
     applyDCTPlane(dct.planes[i], planes[i], width_height[0], width_height[1], params[i], tables[i]);
     dct.planes_sizes[i] = dct.planes[i].totalSize();
-  }
 #ifdef MYYUV_USE_OPENMP
-  omp_set_nested(omp_nested_prev);
+    } catch (...) {
+      omp_set_nested(omp_nested_prev);
+      throw;
+    }
 #endif
+  }
   res.header.data_size = dct.totalSize();
   res.data = dct.dump();
   return res;
@@ -445,12 +451,18 @@ YUV decompress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) 
   #pragma omp parallel for
 #endif
   for (uint8_t i = 0; i < 3; i++) {
+#ifdef MYYUV_USE_OPENMP
+    try {
+#endif
     auto width_height = yuv.getWidthHeightChannel(i);
     restoreDCTPlane(planes[i], dct.planes[i], width_height[0], width_height[1], params[i], tables[i]);
-  }
 #ifdef MYYUV_USE_OPENMP
-  omp_set_nested(omp_nested_prev);
+    } catch (...) {
+      omp_set_nested(omp_nested_prev);
+      throw;
+    }
 #endif
+  }
   return res;
 }
 

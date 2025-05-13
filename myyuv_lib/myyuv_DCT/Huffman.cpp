@@ -14,7 +14,7 @@
 
 // https://stackoverflow.com/a/58568736
 template <typename T>
-static T divide_roundup(T numer, T denom) {
+static T divide_roundup(T numer, T denom) noexcept {
   static_assert(std::numeric_limits<T>::is_integer, "Only integer types are allowed");
   T result = ((numer) < 0) != ((denom) < 0) ?
     (numer) / (denom) :
@@ -31,7 +31,7 @@ static uint32_t zigzag_indexes[64] = {
   0, 8, 1, 2, 9, 16, 24, 17, 10, 3, 4, 11, 18, 25, 32, 40, 33, 26, 19, 12, 5, 6, 13, 20, 27, 34, 41, 48, 56, 49, 42, 35, 28, 21, 14, 7, 15, 22, 29, 36, 43, 50, 57, 58, 51, 44, 37, 30, 23, 31, 38, 45, 52, 59, 60, 53, 46, 39, 47, 54, 61, 62, 55, 63,
 };
 
-static void pack11bit(uint8_t* packed_res, std::set<int16_t>::iterator& it, uint8_t count) {
+static void pack11bit(uint8_t* packed_res, std::set<int16_t>::iterator& it, uint8_t count) noexcept {
   std::fill(packed_res, packed_res + divide_roundup(static_cast<unsigned>(count) * 11u, 8u), 0);
   int bit_offset = 0;
   for (uint8_t i = 0; i < count; i++) {
@@ -49,7 +49,7 @@ static void pack11bit(uint8_t* packed_res, std::set<int16_t>::iterator& it, uint
   }
 }
 
-static void unpack11bit(const uint8_t* packed_arr, std::set<int16_t>& res, uint8_t count) {
+static void unpack11bit(const uint8_t* packed_arr, std::set<int16_t>& res, uint8_t count) noexcept {
   int bit_offset = 0;
   for (uint8_t i = 0; i < count; i++) {
     int byte_ind = bit_offset / 8;
@@ -141,11 +141,11 @@ static void decodeFromTreeData(int16_t data[64], const std::bitset<512>& encoded
   //assert(j == 64);
 }
 
-Huffman::Huffman(Huffman&& huffman) : Huffman() {
+Huffman::Huffman(Huffman&& huffman) noexcept {
   operator=(std::move(huffman));
 }
 
-Huffman& Huffman::operator=(Huffman&& huffman) {
+Huffman& Huffman::operator=(Huffman&& huffman) noexcept {
   std::swap(data, huffman.data);
   std::swap(encoded_data_bits, huffman.encoded_data_bits);
   std::swap(encoded_data, huffman.encoded_data);
