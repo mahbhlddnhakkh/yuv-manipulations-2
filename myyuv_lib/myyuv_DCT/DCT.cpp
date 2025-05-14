@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <vector>
 #ifdef MYYUV_USE_OPENMP
+#include <exception>
 #include <omp.h>
 #endif
 
@@ -395,6 +396,7 @@ YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
   DCTYUV dct;
 #ifdef MYYUV_USE_OPENMP
   int omp_nested_prev = omp_get_nested();
+  std::exception_ptr omp_exception;
   omp_set_nested(1);
   #pragma omp parallel for
 #endif
@@ -407,11 +409,19 @@ YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
     dct.planes_sizes[i] = dct.planes[i].totalSize();
 #ifdef MYYUV_USE_OPENMP
     } catch (...) {
-      omp_set_nested(omp_nested_prev);
-      throw;
+      #pragma omp critical
+      if (!omp_exception) {
+        omp_exception = std::current_exception();
+      }
     }
 #endif
   }
+#ifdef MYYUV_USE_OPENMP
+  omp_set_nested(omp_nested_prev);
+  if (omp_exception) {
+    std::rethrow_exception(omp_exception);
+  }
+#endif
   res.header.data_size = dct.totalSize();
   res.data = dct.dump();
   return res;
@@ -447,6 +457,7 @@ YUV decompress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) 
   static constexpr const float* tables[3] = { lum_q_table, chroma_q_table, chroma_q_table };
 #ifdef MYYUV_USE_OPENMP
   int omp_nested_prev = omp_get_nested();
+  std::exception_ptr omp_exception;
   omp_set_nested(1);
   #pragma omp parallel for
 #endif
@@ -458,11 +469,19 @@ YUV decompress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) 
     restoreDCTPlane(planes[i], dct.planes[i], width_height[0], width_height[1], params[i], tables[i]);
 #ifdef MYYUV_USE_OPENMP
     } catch (...) {
-      omp_set_nested(omp_nested_prev);
-      throw;
+      #pragma omp critical
+      if (!omp_exception) {
+        omp_exception = std::current_exception();
+      }
     }
 #endif
   }
+#ifdef MYYUV_USE_OPENMP
+  omp_set_nested(omp_nested_prev);
+  if (omp_exception) {
+    std::rethrow_exception(omp_exception);
+  }
+#endif
   return res;
 }
 
