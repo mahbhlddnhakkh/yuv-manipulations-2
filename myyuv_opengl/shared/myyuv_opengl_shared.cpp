@@ -86,8 +86,8 @@ GLuint create_bmp_texture(const myyuv::BMP& bmp, GLuint shader_program, const GL
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  uint8_t* data = bmp.colorData();
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bmp.trueWidth(), bmp.trueHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bmp.data);
+  uint8_t* data = bmp.colorDataFlipped();
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bmp.trueWidth(), bmp.trueHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
   delete[] data;
   glGenerateMipmap(GL_TEXTURE_2D);
   if (shader_program != 0 && uniform != nullptr) {

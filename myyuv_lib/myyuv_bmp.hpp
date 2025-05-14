@@ -57,6 +57,7 @@ struct BMP {
   }
   uint32_t imageSize() const noexcept;
   uint8_t* colorData() const;
+  uint8_t* colorDataFlipped() const;
   BMP fixedColorDataRotation() const;
   bool isValid() const noexcept;
   bool isValidHeader() const noexcept;

@@ -16,7 +16,7 @@ const size_t shapes_count_max = 1000;
 const size_t SCREEN_WIDTH = 1000;
 const size_t SCREEN_HEIGHT = 800;
 const float cube_rotation_speed = 15.0f;
-const glm::mat4 projection = glm::perspective(glm::radians(45.0f), static_cast<GLfloat>(SCREEN_WIDTH) / static_cast<GLfloat>(SCREEN_HEIGHT), 0.1f, 150.0f);
+const glm::mat4 projection = glm::perspective(glm::radians(45.0f), static_cast<GLfloat>(SCREEN_WIDTH) / static_cast<GLfloat>(SCREEN_HEIGHT), 0.1f, 500.0f);
 
 // TimeDelta
 //

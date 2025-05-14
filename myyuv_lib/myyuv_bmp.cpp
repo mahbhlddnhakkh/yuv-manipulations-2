@@ -71,7 +71,7 @@ uint32_t BMP::imageSize() const noexcept {
 
 uint8_t* BMP::colorData() const {
   if (!isValid()) {
-    throw std::runtime_error("YUV data is invalid");
+    throw std::runtime_error("BMP data is invalid");
   }
   const uint32_t size = imageSize();
   const uint32_t bytes_per_pixel = header.bit_count / 8;
@@ -85,6 +85,25 @@ uint8_t* BMP::colorData() const {
       }
     }
   } else if (header.width > 0 && header.height > 0) {
+    for (uint32_t i = 0; i < header.height; i++) {
+      std::copy(data + bytes_per_pixel * header.width * (header.height - i - 1), data + bytes_per_pixel * header.width * (header.height - i), res + bytes_per_pixel * header.width * i);
+    }
+  } else {
+    throw std::runtime_error("Unaccounted width and height sign");
+  }
+  return res;
+}
+
+uint8_t* BMP::colorDataFlipped() const {
+  if (!isValid()) {
+    throw std::runtime_error("BMP data is invalid");
+  }
+  const uint32_t size = imageSize();
+  const uint32_t bytes_per_pixel = header.bit_count / 8;
+  uint8_t* res = new uint8_t[size];
+  if (header.width > 0 && header.height > 0) {
+    std::copy(data, data + size, res);
+  } else if (header.width > 0 && header.height < 0) {
     for (uint32_t i = 0; i < header.height; i++) {
       std::copy(data + bytes_per_pixel * header.width * (header.height - i - 1), data + bytes_per_pixel * header.width * (header.height - i), res + bytes_per_pixel * header.width * i);
     }

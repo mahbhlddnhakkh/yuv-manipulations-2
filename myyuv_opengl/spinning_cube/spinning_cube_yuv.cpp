@@ -66,7 +66,7 @@ int main_yuv(myyuv::YUV yuv, bool force_cube, bool flip_w_h, size_t shapes_count
   const double generation_radius = get_sphere_generation_radius(shapes_count);
   glUniformMatrix4fv(glGetUniformLocation(shader_program, "projection"), 1, GL_FALSE, &projection[0][0]);
   Camera camera;
-  camera.pos = glm::vec3(generation_radius + 3.0f, 0.0f, generation_radius + 3.0f);
+  camera.pos = glm::vec3(generation_radius * 2.5f + 3.0f, 0.0f, generation_radius * 2.5f + 3.0f);
   camera.yaw = -135.0f;
   camera.update();
   // setup cubes
