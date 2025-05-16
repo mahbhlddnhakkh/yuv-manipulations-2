@@ -22,7 +22,7 @@ public:
     _end = std::chrono::high_resolution_clock::now();
   }
   float getDurationMs() const noexcept {
-    return std::chrono::duration_cast<std::chrono::duration<float>>(_end - _start).count();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(_end - _start).count();
   }
   static float measureTimeMs(std::function<void()> f) {
     MyTimer timer;
