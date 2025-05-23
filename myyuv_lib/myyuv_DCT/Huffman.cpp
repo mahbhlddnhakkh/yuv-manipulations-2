@@ -28,7 +28,7 @@ inline static bool mapKeyExist(const std::map<T, U>& map, const T& key) noexcept
 }
 
 static uint32_t zigzag_indexes[64] = {
-  0, 8, 1, 2, 9, 16, 24, 17, 10, 3, 4, 11, 18, 25, 32, 40, 33, 26, 19, 12, 5, 6, 13, 20, 27, 34, 41, 48, 56, 49, 42, 35, 28, 21, 14, 7, 15, 22, 29, 36, 43, 50, 57, 58, 51, 44, 37, 30, 23, 31, 38, 45, 52, 59, 60, 53, 46, 39, 47, 54, 61, 62, 55, 63,
+  0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
 };
 
 static void pack11bit(uint8_t* packed_res, std::set<int16_t>::iterator& it, uint8_t count) noexcept {
@@ -90,7 +90,7 @@ static std::unordered_map<int16_t, std::pair<uint8_t, std::bitset<8>>> generateC
     for (const auto& c : set) {
       assert(code < 128); // just in case
       res.insert({ c, { len, code } });
-      //std::cout << (int)c << ':' << std::bitset<8>(code).to_string() << ' ' << (int)len << '\n';
+      //std::cout << (int)c << ':' << std::bitset<8>(code).to_string().substr(8 - len) << ' ' << (int)len << '\n';
       code++;
     }
     prev_len = len;
@@ -218,6 +218,7 @@ Huffman Huffman::fromData(const int16_t data[64]) {
     }
     encoded_data_bits += code_len;
   }
+  //std::cout << huffman.encoded_data.to_string().substr(512 - encoded_data_bits) << '\n';
   assert(encoded_data_bits <= huffman.encoded_data.size());
   huffman.encoded_data_bits = encoded_data_bits;
   return huffman;
