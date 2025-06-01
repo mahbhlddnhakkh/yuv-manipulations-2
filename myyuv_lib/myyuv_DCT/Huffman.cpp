@@ -110,12 +110,18 @@ static int16_t decodeSymbol(uint16_t& i, const std::bitset<512>& encoded_data, c
       ch_count = set->size();
     }
     assert(i < encoded_data_bits);
+    if (i >= encoded_data_bits) {
+      throw std::runtime_error("Huffman bad code");
+    }
     code |= encoded_data.test(i++);
     assert(static_cast<int>(ch_count) + static_cast<int>(first) < 255);
     assert(code < 255);
     if (code < ch_count + first) {
       assert(code >= first);
       assert(code - first < ch_count);
+      if (!set) {
+        throw std::runtime_error("Huffman bad code");
+      }
       return *std::next(set->begin(), code - first);
     }
     first += ch_count;
@@ -131,14 +137,13 @@ static void decodeFromTreeData(int16_t data[64], const std::bitset<512>& encoded
   assert(encoded_data_bits <= encoded_data.size());
   size_t j = 0;
   uint16_t i = 0;
-  while (i < encoded_data_bits) {
+  while (i < encoded_data_bits && j < 64) {
     assert(j < 64);
     data[zigzag_indexes[j++]] = decodeSymbol(i, encoded_data, encoded_data_bits, tree_data);
     //std::cout << "data[" << zigzag_indexes[j - 1] << "] = " << data[zigzag_indexes[j - 1]] << '\n';
     assert(i <= encoded_data_bits);
   }
   assert(i == encoded_data_bits);
-  //assert(j == 64);
 }
 
 Huffman::Huffman(Huffman&& huffman) noexcept {

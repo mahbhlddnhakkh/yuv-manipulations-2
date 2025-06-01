@@ -24,7 +24,7 @@ struct HFMNode {
 
 struct Huffman {
   int16_t data[64] = { 0 };
-  uint16_t encoded_data_bits;
+  uint16_t encoded_data_bits = 0;
   std::bitset<512> encoded_data;
   std::map<uint8_t, std::set<int16_t>> tree_data;
   Huffman() {}
