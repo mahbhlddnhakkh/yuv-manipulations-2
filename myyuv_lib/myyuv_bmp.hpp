@@ -38,7 +38,8 @@ struct BMPColorHeader {
 };
 #pragma pack(pop)
 
-struct BMP {
+class BMP {
+public:
   BMPHeader header;
   BMPColorHeader color_header;
   uint8_t* data = nullptr;

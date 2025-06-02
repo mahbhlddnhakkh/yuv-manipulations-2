@@ -25,7 +25,8 @@ struct YUVHeader {
 };
 #pragma pack(pop)
 
-struct YUV {
+class YUV {
+public:
   YUVHeader header;
   uint8_t* compression_params = nullptr;
   uint8_t* data = nullptr;

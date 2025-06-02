@@ -33,11 +33,11 @@ A library for YUV and BMP images. Note: compression works only with images whose
 // BMP
 struct BMPHeader;
 struct BMPColorHeader;
-struct BMP;
+class BMP;
 
 // YUV
 struct YUVHeader;
-struct YUV;
+class YUV;
 ```
 
 </details>
