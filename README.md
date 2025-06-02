@@ -25,7 +25,7 @@ cd ..
 You can also use `-D MYYUV_USE_OPENMP=ON` to build with OpenMP support for parallel DCT compression and decompression. OpenMP is disabled by default.
 
 ## Run:
-### `libmyyuv_lib`
+### `myyuv_lib`
 A library for YUV and BMP images. Note: compression works only with images whose width and height are divisible integer by 16. For YUV (IYUV) conversion image width and height must be a divisible integer by 2.
 <details><summary>libmyyuv_lib: myyuv.hpp</summary>
 
