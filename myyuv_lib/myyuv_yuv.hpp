@@ -30,15 +30,24 @@ struct YUV {
   uint8_t* compression_params = nullptr;
   uint8_t* data = nullptr;
   enum class FormatGroup { UNKNOWN = 0, PACKED, PLANAR };
-  enum class FourccFormat : uint32_t { UNKNOWN = 0, IYUV = 0x56555949u };
-  enum class Compression : uint16_t { NONE = 0, DCT = 1, };
+  using FourccFormat = uint32_t;
+  struct FourccFormats {
+    static constexpr const FourccFormat UNKNOWN = 0;
+    static constexpr const FourccFormat IYUV = 0x56555949;
+  };
+  using Compression = uint16_t;
+  struct Compressions {
+    static constexpr const Compression NONE = 0;
+    static constexpr const Compression DCT = 1;
+  };
   static constexpr const uint32_t max_planes = 4;
-  static constexpr const uint8_t no_plane = 255;
+  static constexpr const uint8_t no_plane = 0xff;
   static std::unordered_map<FourccFormat, std::array<uint8_t, max_planes>> yuv_order_planes_map;
   static std::unordered_map<FourccFormat, std::array<uint32_t, 2>> yuv_resolution_fraction_map;
   static std::unordered_map<FourccFormat, std::function<YUV(const BMP&)>> bmp_to_yuv_map;
   static std::unordered_map<Compression, std::unordered_map<FourccFormat, std::function<YUV(const YUV&, const void*, uint32_t)>>> compress_map;
   static std::unordered_map<Compression, std::unordered_map<FourccFormat, std::function<YUV(const YUV&)>>> decompress_map;
+  static std::unordered_map<FourccFormat, FormatGroup> yuv_format_group_map;
   YUV() {}
   explicit YUV(const std::string& path);
   explicit YUV(const BMP& bmp, FourccFormat format);
@@ -50,12 +59,11 @@ struct YUV {
   bool isValid() const noexcept;
   bool isValidHeader() const noexcept;
   static bool isImplementedFormat(FourccFormat format, Compression compression) noexcept;
-  inline constexpr FourccFormat getFourccFormat() const noexcept {
-    return static_cast<FourccFormat>(header.fourcc_format);
-  }
-  inline constexpr Compression getCompression() const noexcept {
-    return static_cast<Compression>(header.compression);
-  }
+  FourccFormat getFourccFormat() const noexcept;
+  Compression getCompression() const noexcept;
+  uint32_t getWidth() const noexcept;
+  uint32_t getHeight() const noexcept;
+  uint32_t getDataSize() const noexcept;
   std::array<uint32_t, 2> getResolutionFraction() const;
   std::array<uint32_t, 2> getWidthHeightChannel(uint8_t channel) const;
   std::array<uint32_t, max_planes> getFormatSizeBits() const;

@@ -31,11 +31,11 @@ static_assert(YUV::no_plane >= YUV::max_planes, "no_plane can't be less than max
 // Order of planes
 // Example: YUV -> 0, 1, 2 ; YVU -> 0, 2, 1
 std::unordered_map<YUV::FourccFormat, std::array<uint8_t, YUV::max_planes>> YUV::yuv_order_planes_map = {
-  { FourccFormat::IYUV, { 0, 1, 2, no_plane } },
+  { FourccFormats::IYUV, { 0, 1, 2, no_plane } },
 };
 
 std::unordered_map<YUV::FourccFormat, std::array<uint32_t, 2>> YUV::yuv_resolution_fraction_map = {
-  { FourccFormat::IYUV, { 2, 2 } },
+  { FourccFormats::IYUV, { 2, 2 } },
 };
 
 static inline void getYUV444FromRGB2x2(uint8_t yuv444[12], uint32_t i, uint32_t j, const uint8_t* rbg, uint32_t width, uint32_t pixel_bits) noexcept {
@@ -59,8 +59,8 @@ static inline void getYUV444FromRGB2x2(uint8_t yuv444[12], uint32_t i, uint32_t 
 }
 
 std::unordered_map<YUV::FourccFormat, std::function<YUV(const BMP&)>> YUV::bmp_to_yuv_map = {
-  { FourccFormat::IYUV, [](const BMP& bmp)->YUV {
-    constexpr const FourccFormat format = FourccFormat::IYUV;
+  { FourccFormats::IYUV, [](const BMP& bmp)->YUV {
+    constexpr const FourccFormat format = FourccFormats::IYUV;
     assert(bmp.isValid());
     assert(bmp.header.bit_count == 32); // TODO: test 24
     YUV res;
@@ -101,9 +101,9 @@ std::unordered_map<YUV::FourccFormat, std::function<YUV(const BMP&)>> YUV::bmp_t
 };
 
 std::unordered_map<YUV::Compression, std::unordered_map<YUV::FourccFormat, std::function<YUV(const YUV&, const void*, uint32_t)>>> YUV::compress_map = {
-  { Compression::DCT, {
-    { FourccFormat::IYUV, [](const YUV& yuv, const void* params, uint32_t params_size)->YUV {
-      assert(yuv.getCompression() == Compression::NONE);
+  { Compressions::DCT, {
+    { FourccFormats::IYUV, [](const YUV& yuv, const void* params, uint32_t params_size)->YUV {
+      assert(yuv.getCompression() == Compressions::NONE);
       if (params_size != 3) {
         throw std::runtime_error("Error compression: incorrect parameters count. 3 parameters required");
       }
@@ -117,9 +117,9 @@ std::unordered_map<YUV::Compression, std::unordered_map<YUV::FourccFormat, std::
 };
 
 std::unordered_map<YUV::Compression, std::unordered_map<YUV::FourccFormat, std::function<YUV(const YUV&)>>> YUV::decompress_map = {
-  { Compression::DCT, {
-    { FourccFormat::IYUV, [](const YUV& yuv)->YUV{
-      assert(yuv.getCompression() == Compression::DCT);
+  { Compressions::DCT, {
+    { FourccFormats::IYUV, [](const YUV& yuv)->YUV{
+      assert(yuv.getCompression() == Compressions::DCT);
       if (yuv.header.compression_params_size != 3) {
         throw std::runtime_error("Error decompression: incorrect parameters count. 3 parameters required");
       }
@@ -130,6 +130,10 @@ std::unordered_map<YUV::Compression, std::unordered_map<YUV::FourccFormat, std::
       return decompress_DCT_planar(yuv, p);
     }}
   }}
+};
+
+std::unordered_map<YUV::FourccFormat, YUV::FormatGroup> YUV::yuv_format_group_map = {
+  { FourccFormats::IYUV, FormatGroup::PLANAR },
 };
 
 YUV::YUV(const std::string& path) : YUV() {
@@ -201,7 +205,7 @@ YUV::~YUV() {
 bool YUV::isValid() const noexcept {
   return data != nullptr &&
   (header.compression_params_size > 0 && compression_params != nullptr ||
-  header.compression == static_cast<uint16_t>(Compression::NONE) && compression_params == nullptr ||
+  header.compression == static_cast<uint16_t>(Compressions::NONE) && compression_params == nullptr ||
   header.compression_params_size == 0 && compression_params == nullptr) &&
   isValidHeader();
 }
@@ -223,7 +227,7 @@ bool YUV::isImplementedFormat(FourccFormat format, Compression compression) noex
   if (!mapKeyExist(bmp_to_yuv_map, format) || !mapKeyExist(yuv_resolution_fraction_map, format)) {
     return false;
   }
-  if (compression != Compression::NONE) {
+  if (compression != Compressions::NONE) {
     if (!mapKeyExist(compress_map, compression) || !mapKeyExist(decompress_map, compression)) {
       return false;
     }
@@ -234,11 +238,31 @@ bool YUV::isImplementedFormat(FourccFormat format, Compression compression) noex
 }
 
 bool YUV::isCompressed() const noexcept {
-  return getCompression() != Compression::NONE;
+  return getCompression() != Compressions::NONE;
+}
+
+YUV::FourccFormat YUV::getFourccFormat() const noexcept {
+  return header.fourcc_format;
+}
+
+YUV::Compression YUV::getCompression() const noexcept{
+  return header.compression;
+}
+
+uint32_t YUV::getWidth() const noexcept {
+  return header.width;
+}
+
+uint32_t YUV::getHeight() const noexcept {
+  return header.height;
+}
+
+uint32_t YUV::getDataSize() const noexcept {
+  return header.data_size;
 }
 
 std::array<uint32_t, 2> YUV::getResolutionFraction() const {
-  if (!isImplementedFormat(getFourccFormat(), Compression::NONE)) {
+  if (!isImplementedFormat(getFourccFormat(), Compressions::NONE)) {
     throw std::runtime_error("Error. Unimplemented format.");
   }
   return yuv_resolution_fraction_map.at(getFourccFormat());
@@ -264,7 +288,7 @@ std::array<uint32_t, 2> YUV::getWidthHeightChannel(uint8_t channel) const {
 
 std::array<uint32_t, YUV::max_planes> YUV::getFormatSizeBits() const {
   // TODO: better name? it's not bits per pixel
-  if (!isImplementedFormat(getFourccFormat(), Compression::NONE)) {
+  if (!isImplementedFormat(getFourccFormat(), Compressions::NONE)) {
     throw std::runtime_error("Error. Unimplemented format.");
   }
   auto fractions = getResolutionFraction();
@@ -280,7 +304,7 @@ std::array<uint32_t, YUV::max_planes> YUV::getFormatSizeBits() const {
 }
 
 std::array<uint8_t, YUV::max_planes> YUV::getYUVPlanesOrder() const {
-  if (!isImplementedFormat(getFourccFormat(), Compression::NONE)) {
+  if (!isImplementedFormat(getFourccFormat(), Compressions::NONE)) {
     throw std::runtime_error("Error. Unimplemented format.");
   }
   if (!mapKeyExist(yuv_order_planes_map, getFourccFormat())) {
@@ -366,16 +390,15 @@ YUV::FormatGroup YUV::getFormatGroup() const noexcept {
 }
 
 YUV::FormatGroup YUV::getFormatGroup(FourccFormat format) noexcept {
-  switch (format) {
-    case FourccFormat::IYUV:
-      return FormatGroup::PLANAR;
-    default:
-      return FormatGroup::UNKNOWN;
+  if (mapKeyExist(yuv_format_group_map, format)) {
+    return yuv_format_group_map.at(format);
+  } else {
+    return FormatGroup::UNKNOWN;
   }
 }
 
 YUV YUV::compress(Compression compression, const void* params, uint32_t params_size) const {
-  if (getCompression() != Compression::NONE) {
+  if (getCompression() != Compressions::NONE) {
     throw std::runtime_error("Error already compressed");
   }
   if (!mapKeyExist(compress_map, compression)) {
@@ -391,7 +414,7 @@ YUV YUV::compress(Compression compression, const void* params, uint32_t params_s
 
 YUV YUV::decompress() const {
   Compression compression = getCompression();
-  if (compression == Compression::NONE) {
+  if (compression == Compressions::NONE) {
     return *this;
   }
   if (!mapKeyExist(decompress_map, compression)) {
@@ -423,7 +446,7 @@ void YUV::load(const std::string& path) {
   f.seekg(res.header.data_pos, f.beg);
   res.header.compression_params_pos = sizeof(res.header);
   res.header.data_pos = res.header.compression_params_pos + res.header.compression_params_size;
-  if (res.getCompression() == Compression::NONE) {
+  if (res.getCompression() == Compressions::NONE) {
     res.header.data_size = res.getImageSize();
   }
   res.data = new uint8_t[res.header.data_size];

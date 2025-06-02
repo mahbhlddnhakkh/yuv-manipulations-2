@@ -370,7 +370,7 @@ YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
   if (yuv.getFormatGroup() != YUV::FormatGroup::PLANAR) {
     throw std::runtime_error("Error compressing: YUV must be planar");
   }
-  if (yuv.getCompression() != YUV::Compression::NONE) {
+  if (yuv.getCompression() != YUV::Compressions::NONE) {
     throw std::runtime_error("Error compressing: can't compress uncompressed YUV");
   }
   for (uint32_t i = 0; i < 3; i++) {
@@ -386,7 +386,7 @@ YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
   assert(planes[0] != nullptr && planes[1] != nullptr && planes[2] != nullptr); // not ready to handle when one plane is missing
   YUV res;
   res.header = yuv.header;
-  res.header.compression = static_cast<uint16_t>(YUV::Compression::DCT);
+  res.header.compression = static_cast<uint16_t>(YUV::Compressions::DCT);
   res.header.compression_params_size = 3;
   res.header.compression_params_pos = sizeof(res.header);
   res.header.data_pos = sizeof(res.header) + 3;
@@ -443,7 +443,7 @@ YUV decompress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) 
   assert(yuv.header.height % (8 * fractions[1]) == 0);
   YUV res;
   res.header = yuv.header;
-  res.header.compression = static_cast<uint16_t>(YUV::Compression::NONE);
+  res.header.compression = static_cast<uint16_t>(YUV::Compressions::NONE);
   res.header.compression_params_size = 0;
   res.header.compression_params_pos = 0;
   res.header.data_pos = sizeof(yuv.header);

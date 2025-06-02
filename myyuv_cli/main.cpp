@@ -46,15 +46,15 @@ inline static bool mapKeyExist(const std::unordered_map<T, U>& map, const T& key
 }
 
 static std::unordered_map<std::string, myyuv::YUV::FourccFormat> format_strings_map = {
-  { "IYUV", myyuv::YUV::FourccFormat::IYUV },
+  { "IYUV", myyuv::YUV::FourccFormats::IYUV },
 };
 
 static std::unordered_map<std::string, myyuv::YUV::Compression> compression_strings_map = {
-  { "DCT", myyuv::YUV::Compression::DCT },
+  { "DCT", myyuv::YUV::Compressions::DCT },
 };
 
 static std::unordered_map<myyuv::YUV::Compression, std::function<myyuv::YUV(const myyuv::YUV&, const std::vector<std::string>&)>> compression_map = {
-  { myyuv::YUV::Compression::DCT, [](const myyuv::YUV& yuv, const std::vector<std::string>& params)->myyuv::YUV {
+  { myyuv::YUV::Compressions::DCT, [](const myyuv::YUV& yuv, const std::vector<std::string>& params)->myyuv::YUV {
     if (params.size() > 3) {
       throw std::runtime_error("Error. Too many compression parameters. Can't be more than 3 parameters.");
     }
@@ -73,7 +73,7 @@ static std::unordered_map<myyuv::YUV::Compression, std::function<myyuv::YUV(cons
     for (size_t i = params.size() - 1; i < 3; i++) {
       params_res[i] = params_res[params.size() - 1];
     }
-    return yuv.compress(myyuv::YUV::Compression::DCT, params_res.data(), params_res.size());
+    return yuv.compress(myyuv::YUV::Compressions::DCT, params_res.data(), params_res.size());
   }},
 };
 
