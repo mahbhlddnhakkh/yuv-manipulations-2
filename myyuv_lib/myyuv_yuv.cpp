@@ -5,7 +5,13 @@
 #include <stdexcept>
 #include <cassert>
 #include <limits>
-#include "myyuv_DCT/DCT.hpp"
+
+namespace myyuvDCT {
+
+extern myyuv::YUV compress_DCT_planar(const myyuv::YUV& yuv, const std::array<uint8_t, 3>& params);
+extern myyuv::YUV decompress_DCT_planar(const myyuv::YUV& yuv, const std::array<uint8_t, 3>& params);
+
+} // myyuvDCT
 
 namespace myyuv {
 
@@ -111,7 +117,7 @@ std::unordered_map<YUV::Compression, std::unordered_map<YUV::FourccFormat, std::
       for (int i = 0; i < 3; i++) {
         p[i] = reinterpret_cast<const uint8_t*>(params)[i];
       }
-      return compress_DCT_planar(yuv, p);
+      return myyuvDCT::compress_DCT_planar(yuv, p);
     }}
   }},
 };
@@ -127,7 +133,7 @@ std::unordered_map<YUV::Compression, std::unordered_map<YUV::FourccFormat, std::
       for (int i = 0; i < 3; i++) {
         p[i] = reinterpret_cast<const uint8_t*>(yuv.compression_params)[i];
       }
-      return decompress_DCT_planar(yuv, p);
+      return myyuvDCT::decompress_DCT_planar(yuv, p);
     }}
   }}
 };

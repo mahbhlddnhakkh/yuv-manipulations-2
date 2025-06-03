@@ -2,13 +2,12 @@
 
 #include <array>
 #include <cstdint>
+#include "myyuv_yuv.hpp"
 
-namespace myyuv {
+namespace myyuvDCT {
 
-class YUV;
+myyuv::YUV compress_DCT_planar(const myyuv::YUV& yuv, const std::array<uint8_t, 3>& params);
 
-YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params);
+myyuv::YUV decompress_DCT_planar(const myyuv::YUV& yuv, const std::array<uint8_t, 3>& params);
 
-YUV decompress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params);
-
-} // myyuv
+} // myyuvDCT

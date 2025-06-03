@@ -6,6 +6,8 @@
 #include <map>
 #include <bitset>
 
+namespace myyuvDCT {
+
 struct HFMNode {
   int16_t ch;
   uint8_t freq;
@@ -16,23 +18,29 @@ struct HFMNode {
     return left == nullptr && right == nullptr;
   }
   struct Compare {
-      inline bool operator()(const std::shared_ptr<HFMNode>& a, const std::shared_ptr<HFMNode>& b) const noexcept {
+    inline bool operator()(const std::shared_ptr<HFMNode>& a, const std::shared_ptr<HFMNode>& b) const noexcept {
       return a->freq > b->freq;
     }
   };
 };
 
-struct Huffman {
-  int16_t data[64] = { 0 };
-  uint16_t encoded_data_bits = 0;
-  std::bitset<512> encoded_data;
-  std::map<uint8_t, std::set<int16_t>> tree_data;
-  Huffman() {}
+class Huffman {
+public:
   Huffman(Huffman&& huffman) noexcept;
   Huffman& operator=(Huffman&& huffman) noexcept;
   static Huffman fromData(const int16_t data[64]);
   static Huffman fromDump(const uint8_t* data, uint8_t size);
   void dump(uint8_t*& res_data, uint8_t& res_size) const;
+  void getData(int16_t data[64]) const;
   bool operator==(const Huffman& huffman) const noexcept;
   bool operator!=(const Huffman& huffman) const noexcept;
+protected:
+  friend struct HFMNode;
+  Huffman() {}
+  int16_t data[64] = { 0 };
+  uint16_t encoded_data_bits = 0;
+  std::bitset<512> encoded_data;
+  std::map<uint8_t, std::set<int16_t>> tree_data;
 };
+
+} // myyuvDCT

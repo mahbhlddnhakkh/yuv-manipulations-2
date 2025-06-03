@@ -66,7 +66,7 @@ static void unpack11bit(const uint8_t* packed_arr, std::set<int16_t>& res, uint8
   }
 }
 
-static void generateCodeLength(std::map<uint8_t, std::set<int16_t>>& tree_data, const std::shared_ptr<HFMNode>& node, uint8_t code_length) {
+static void generateCodeLength(std::map<uint8_t, std::set<int16_t>>& tree_data, const std::shared_ptr<myyuvDCT::HFMNode>& node, uint8_t code_length) {
   if (node == nullptr) {
     return;
   }
@@ -145,6 +145,8 @@ static void decodeFromTreeData(int16_t data[64], const std::bitset<512>& encoded
   }
   assert(i == encoded_data_bits);
 }
+
+namespace myyuvDCT {
 
 Huffman::Huffman(Huffman&& huffman) noexcept {
   operator=(std::move(huffman));
@@ -313,6 +315,10 @@ tmp_label:
   }
 }
 
+void Huffman::getData(int16_t data[64]) const {
+  std::copy(this->data, this->data + 64, data);
+}
+
 bool Huffman::operator==(const Huffman& huffman) const noexcept {
   assert(encoded_data_bits <= encoded_data.size());
   assert(huffman.encoded_data_bits <= huffman.encoded_data.size());
@@ -333,3 +339,5 @@ bool Huffman::operator==(const Huffman& huffman) const noexcept {
 bool Huffman::operator!=(const Huffman& huffman) const noexcept {
   return !operator==(huffman);
 }
+
+} // myyuvDCT

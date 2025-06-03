@@ -1,6 +1,5 @@
 #include "DCT.hpp"
 
-#include "myyuv_yuv.hpp"
 #include "Huffman.hpp"
 #include <stdexcept>
 #include <cassert>
@@ -306,7 +305,7 @@ static void applyDCTPlane(DCTYUVPlane& res, const uint8_t* data, uint32_t width,
         }
       }
       applyDCTBlock(data_block, block_res, q_table);
-      Huffman huffman = Huffman::fromData(block_res);
+      myyuvDCT::Huffman huffman = myyuvDCT::Huffman::fromData(block_res);
       const uint32_t k = (i + j * width / 8) / 8;
       assert(k < res.chunks_sizes_size);
       huffman.dump(contents[k], res.chunks_sizes[k]);
@@ -325,10 +324,12 @@ static void applyDCTPlane(DCTYUVPlane& res, const uint8_t* data, uint32_t width,
 }
 
 static void restoreDCTBlock(float block_res[64], const uint8_t* huffman_data, uint8_t huffman_size, const float q_table[64]) {
-  const Huffman huffman = Huffman::fromDump(huffman_data, huffman_size);
+  const myyuvDCT::Huffman huffman = myyuvDCT::Huffman::fromDump(huffman_data, huffman_size);
   float data_block[64];
+  int16_t huffman_block_data[64];
+  huffman.getData(huffman_block_data);
   for (uint32_t i = 0; i < 64; i++) {
-    block_res[i] = static_cast<float>(huffman.data[i]) * q_table[i];
+    block_res[i] = static_cast<float>(huffman_block_data[i]) * q_table[i];
   }
   squareMatrixMulT2<8>(DCT_matrix8, block_res, data_block);
   squareMatrixMul<8>(data_block, DCT_matrix8, block_res);
@@ -364,13 +365,13 @@ static void restoreDCTPlane(uint8_t* res, const DCTYUVPlane& dct, uint32_t width
   }
 }
 
-namespace myyuv {
+namespace myyuvDCT {
 
-YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
-  if (yuv.getFormatGroup() != YUV::FormatGroup::PLANAR) {
+myyuv::YUV compress_DCT_planar(const myyuv::YUV& yuv, const std::array<uint8_t, 3>& params) {
+  if (yuv.getFormatGroup() != myyuv::YUV::FormatGroup::PLANAR) {
     throw std::runtime_error("Error compressing: YUV must be planar");
   }
-  if (yuv.getCompression() != YUV::Compressions::NONE) {
+  if (yuv.getCompression() != myyuv::YUV::Compressions::NONE) {
     throw std::runtime_error("Error compressing: can't compress uncompressed YUV");
   }
   for (uint32_t i = 0; i < 3; i++) {
@@ -382,11 +383,11 @@ YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
   assert(yuv.header.width % (8 * fractions[0]) == 0);
   assert(yuv.header.height % (8 * fractions[1]) == 0);
   auto planes = yuv.getYUVPlanes();
-  assert(YUV::max_planes == 3 || YUV::max_planes > 3 && planes[3] == nullptr); // Transparency is not supported
+  assert(myyuv::YUV::max_planes == 3 || myyuv::YUV::max_planes > 3 && planes[3] == nullptr); // Transparency is not supported
   assert(planes[0] != nullptr && planes[1] != nullptr && planes[2] != nullptr); // not ready to handle when one plane is missing
-  YUV res;
+  myyuv::YUV res;
   res.header = yuv.header;
-  res.header.compression = static_cast<uint16_t>(YUV::Compressions::DCT);
+  res.header.compression = static_cast<uint16_t>(myyuv::YUV::Compressions::DCT);
   res.header.compression_params_size = 3;
   res.header.compression_params_pos = sizeof(res.header);
   res.header.data_pos = sizeof(res.header) + 3;
@@ -427,8 +428,8 @@ YUV compress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
   return res;
 }
 
-YUV decompress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) {
-  if (yuv.getFormatGroup() != YUV::FormatGroup::PLANAR) {
+myyuv::YUV decompress_DCT_planar(const myyuv::YUV& yuv, const std::array<uint8_t, 3>& params) {
+  if (yuv.getFormatGroup() != myyuv::YUV::FormatGroup::PLANAR) {
     throw std::runtime_error("Error decompressing: YUV must be planar");
   }
   assert(yuv.header.compression_params_size == 3);
@@ -441,9 +442,9 @@ YUV decompress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) 
   auto fractions = yuv.getResolutionFraction();
   assert(yuv.header.width % (8 * fractions[0]) == 0);
   assert(yuv.header.height % (8 * fractions[1]) == 0);
-  YUV res;
+  myyuv::YUV res;
   res.header = yuv.header;
-  res.header.compression = static_cast<uint16_t>(YUV::Compressions::NONE);
+  res.header.compression = static_cast<uint16_t>(myyuv::YUV::Compressions::NONE);
   res.header.compression_params_size = 0;
   res.header.compression_params_pos = 0;
   res.header.data_pos = sizeof(yuv.header);
@@ -452,7 +453,7 @@ YUV decompress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) 
   DCTYUV dct = DCTYUV::load(yuv.data, yuv.header.data_size);
   res.data = new uint8_t[res.header.data_size];
   auto planes = res.getYUVPlanes();
-  assert(YUV::max_planes == 3 || YUV::max_planes > 3 && planes[3] == nullptr); // Transparency is not supported
+  assert(myyuv::YUV::max_planes == 3 || myyuv::YUV::max_planes > 3 && planes[3] == nullptr); // Transparency is not supported
   assert(planes[0] != nullptr && planes[1] != nullptr && planes[2] != nullptr); // not ready to handle when one plane is missing
   static constexpr const float* tables[3] = { lum_q_table, chroma_q_table, chroma_q_table };
 #ifdef MYYUV_USE_OPENMP
@@ -485,4 +486,4 @@ YUV decompress_DCT_planar(const YUV& yuv, const std::array<uint8_t, 3>& params) 
   return res;
 }
 
-} // myyuv
+} // myyuvDCT
