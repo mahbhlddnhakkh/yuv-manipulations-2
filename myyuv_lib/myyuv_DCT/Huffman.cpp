@@ -12,6 +12,8 @@
 #include <algorithm>
 #include <iterator>
 
+namespace {
+
 // https://stackoverflow.com/a/58568736
 template <typename T>
 static T divide_roundup(T numer, T denom) noexcept {
@@ -145,6 +147,8 @@ static void decodeFromTreeData(int16_t data[64], const std::bitset<512>& encoded
   }
   assert(i == encoded_data_bits);
 }
+
+} // namespace
 
 namespace myyuvDCT {
 

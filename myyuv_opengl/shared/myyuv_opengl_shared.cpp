@@ -79,6 +79,7 @@ int create_shader_program(GLuint& shader_program, const char* vertex_shader_src,
 
 GLuint create_bmp_texture(const myyuv::BMP& bmp, GLuint shader_program, const GLchar* uniform, GLuint unit) {
   assert(bmp.isValid());
+  assert(bmp.header.bit_count == 32);
   GLuint texture;
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
@@ -96,7 +97,7 @@ GLuint create_bmp_texture(const myyuv::BMP& bmp, GLuint shader_program, const GL
   return texture;
 }
 
-static void create_plane_texture(GLuint shader_program, const GLuint unit, GLuint& tex, const uint8_t* data, const uint32_t width, const uint32_t height, const char* uniform) {
+static void create_yuv_plane_texture(GLuint shader_program, const GLuint unit, GLuint& tex, const uint8_t* data, const uint32_t width, const uint32_t height, const char* uniform) {
   assert(uniform);
   assert(data);
   glGenTextures(1, &tex);
@@ -126,7 +127,7 @@ std::vector<GLuint> create_yuv_texture(const myyuv::YUV& yuv, GLuint shader_prog
       texes.push_back(0);
       auto width_height = yuv.getWidthHeightChannel(i);
       assert(width_height[0] != 0 && width_height[1] != 0);
-      create_plane_texture(shader_program, unit + j, texes.at(j), planes[i], width_height[0], width_height[1], uniforms.at(j));
+      create_yuv_plane_texture(shader_program, unit + j, texes.at(j), planes[i], width_height[0], width_height[1], uniforms.at(j));
       j++;
     }
   }

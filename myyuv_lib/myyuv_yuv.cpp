@@ -13,7 +13,7 @@ extern myyuv::YUV decompress_DCT_planar(const myyuv::YUV& yuv, const std::array<
 
 } // myyuvDCT
 
-namespace myyuv {
+namespace {
 
 // https://stackoverflow.com/a/58568736
 template <typename T>
@@ -27,22 +27,9 @@ static T divide_roundnearest(T numer, T denom) noexcept {
 }
 
 // https://stackoverflow.com/a/36835959
-static inline constexpr unsigned char operator "" _uchar( unsigned long long arg ) noexcept {
-  return static_cast< unsigned char >( arg );
+static inline constexpr unsigned char operator"" _uchar(unsigned long long arg) noexcept {
+  return static_cast<unsigned char>(arg);
 }
-
-static_assert(YUV::max_planes >= 3, "max_planes must be at least 3");
-static_assert(YUV::no_plane >= YUV::max_planes, "no_plane can't be less than max_planes");
-
-// Order of planes
-// Example: YUV -> 0, 1, 2 ; YVU -> 0, 2, 1
-std::unordered_map<YUV::FourccFormat, std::array<uint8_t, YUV::max_planes>> YUV::yuv_order_planes_map = {
-  { FourccFormats::IYUV, { 0, 1, 2, no_plane } },
-};
-
-std::unordered_map<YUV::FourccFormat, std::array<uint32_t, 2>> YUV::yuv_resolution_fraction_map = {
-  { FourccFormats::IYUV, { 2, 2 } },
-};
 
 static inline void getYUV444FromRGB2x2(uint8_t yuv444[12], uint32_t i, uint32_t j, const uint8_t* rbg, uint32_t width, uint32_t pixel_bits) noexcept {
   const uint32_t pixel_bytes = pixel_bits / 8;
@@ -63,6 +50,36 @@ static inline void getYUV444FromRGB2x2(uint8_t yuv444[12], uint32_t i, uint32_t 
     jj++;
   }
 }
+
+template<typename T, typename U>
+inline static bool mapKeyExist(const std::unordered_map<T, U>& map, const T& key) noexcept {
+  return map.find(key) != map.end();
+}
+
+static constexpr std::array<uint8_t*, myyuv::YUV::max_planes> planes_const_cast(const std::array<const uint8_t*, myyuv::YUV::max_planes>& arr) {
+  std::array<uint8_t*, myyuv::YUV::max_planes> res{};
+  for (uint8_t i = 0; i < myyuv::YUV::max_planes; i++) {
+    res[i] = const_cast<uint8_t*>(arr[i]);
+  }
+  return res;
+}
+
+} // namespace
+
+namespace myyuv {
+
+static_assert(YUV::max_planes >= 3, "max_planes must be at least 3");
+static_assert(YUV::no_plane >= YUV::max_planes, "no_plane can't be less than max_planes");
+
+// Order of planes
+// Example: YUV -> 0, 1, 2 ; YVU -> 0, 2, 1
+std::unordered_map<YUV::FourccFormat, std::array<uint8_t, YUV::max_planes>> YUV::yuv_order_planes_map = {
+  { FourccFormats::IYUV, { 0, 1, 2, no_plane } },
+};
+
+std::unordered_map<YUV::FourccFormat, std::array<uint32_t, 2>> YUV::yuv_resolution_fraction_map = {
+  { FourccFormats::IYUV, { 2, 2 } },
+};
 
 std::unordered_map<YUV::FourccFormat, std::function<YUV(const BMP&)>> YUV::bmp_to_yuv_map = {
   { FourccFormats::IYUV, [](const BMP& bmp)->YUV {
@@ -224,11 +241,6 @@ bool YUV::isValidHeader() const noexcept {
   header.data_size > 0;
 }
 
-template<typename T, typename U>
-inline static bool mapKeyExist(const std::unordered_map<T, U>& map, const T& key) noexcept {
-  return map.find(key) != map.end();
-}
-
 bool YUV::isImplementedFormat(FourccFormat format, Compression compression) noexcept {
   if (!mapKeyExist(bmp_to_yuv_map, format) || !mapKeyExist(yuv_resolution_fraction_map, format)) {
     return false;
@@ -300,6 +312,7 @@ std::array<uint32_t, YUV::max_planes> YUV::getFormatSizeBits() const {
   auto fractions = getResolutionFraction();
   auto order = getYUVPlanesOrder();
   uint32_t fraction = fractions[0] * fractions[1];
+  assert(8 % fraction == 0);
   std::array<uint32_t, max_planes> bits = { 8, 8 / fraction, 8 / fraction, 8 };
   for (uint32_t i = 0; i < max_planes; i++) {
     if (order[i] == no_plane) {
@@ -342,7 +355,7 @@ std::array<uint8_t, YUV::max_planes> YUV::getYUVPlanesOrder() const {
 uint32_t YUV::getImageSize() const {
   auto bits = getFormatSizeBits();
   uint32_t sz = 0;
-  for (uint32_t i = 0; i < 3; i++) {
+  for (uint32_t i = 0; i < max_planes; i++) {
     sz += header.width * header.height * bits[i] / 8;
   }
   return sz;
@@ -375,14 +388,6 @@ std::array<const uint8_t*, YUV::max_planes> YUV::getYUVPlanes() const {
     if (o != no_plane && bits[o] == 0) {
       res[o] = nullptr;
     }
-  }
-  return res;
-}
-
-static constexpr std::array<uint8_t*, YUV::max_planes> planes_const_cast(const std::array<const uint8_t*, YUV::max_planes>& arr) {
-  std::array<uint8_t*, YUV::max_planes> res{};
-  for (uint8_t i = 0; i < YUV::max_planes; i++) {
-    res[i] = const_cast<uint8_t*>(arr[i]);
   }
   return res;
 }

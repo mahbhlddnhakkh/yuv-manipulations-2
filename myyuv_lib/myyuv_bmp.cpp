@@ -113,18 +113,6 @@ uint8_t* BMP::colorDataFlipped() const {
   return res;
 }
 
-BMP BMP::fixedColorDataRotation() const {
-  assert(isValid());
-  uint8_t* color_data = colorData();
-  BMP res;
-  res.header = header;
-  res.color_header = color_header;
-  res.data = color_data;
-  res.header.width = trueWidth();
-  res.header.height = -trueHeight();
-  return res;
-}
-
 bool BMP::isValid() const noexcept {
   return data != nullptr && isValidHeader();
 }

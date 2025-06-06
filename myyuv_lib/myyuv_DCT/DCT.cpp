@@ -196,8 +196,6 @@ struct DCTYUV {
   }
 };
 
-} // namespace anon
-
 static constexpr const float lum_q_table[64] = {
   16, 11, 10, 16, 24, 40, 51, 61,
   12, 12, 14, 19, 26, 58, 60, 55,
@@ -364,6 +362,8 @@ static void restoreDCTPlane(uint8_t* res, const DCTYUVPlane& dct, uint32_t width
     }
   }
 }
+
+} // namespace
 
 namespace myyuvDCT {
 
