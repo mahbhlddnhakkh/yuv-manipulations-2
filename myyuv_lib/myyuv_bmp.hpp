@@ -98,17 +98,13 @@ public:
   * @brief Get absolute value of image width.
   * @return Positive image width.
   */
-  inline uint32_t trueWidth() const noexcept {
-    return std::abs(header.width);
-  }
+  uint32_t trueWidth() const noexcept;
 
   /**
   * @brief Get absolute value of image height.
   * @return Positive image height.
   */
-  inline uint32_t trueHeight() const noexcept {
-    return std::abs(header.height);
-  }
+  uint32_t trueHeight() const noexcept;
 
   /**
   * @brief Calculates image size.

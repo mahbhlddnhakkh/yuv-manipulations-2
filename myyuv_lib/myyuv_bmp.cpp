@@ -64,6 +64,14 @@ BMP::~BMP() {
   delete[] data;
 }
 
+uint32_t BMP::trueWidth() const noexcept {
+  return std::abs(header.width);
+}
+
+uint32_t BMP::trueHeight() const noexcept {
+  return std::abs(header.height);
+}
+
 uint32_t BMP::imageSize() const noexcept {
   // I don't think overflow matters
   return trueWidth() * trueHeight() * header.bit_count / 8;
