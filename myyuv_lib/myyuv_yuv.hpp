@@ -30,6 +30,9 @@ struct YUVHeader {
 
 /**
 * @brief Class that represents YUV image.
+* @var header YUV file header.
+* @var compression_params Compression parameters data.
+* @var data Image data.
 */
 class YUV {
 public:

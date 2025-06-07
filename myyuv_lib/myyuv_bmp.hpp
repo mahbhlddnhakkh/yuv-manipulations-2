@@ -5,7 +5,6 @@
 
 namespace myyuv {
 
-// https://solarianprogrammer.com/2018/11/19/cpp-reading-writing-bmp-images/
 #pragma pack(push, 1)
 /**
 * @brief Header of BMP file. It includes `File Header` and `Info Header`.
@@ -46,6 +45,9 @@ struct BMPColorHeader {
 
 /**
 * @brief Class that represents BMP (RGB[A]) image.
+* @var header BMP file header (file header and info header).
+* @var color_header BMP color header.
+* @var data Image data.
 */
 class BMP {
 public:

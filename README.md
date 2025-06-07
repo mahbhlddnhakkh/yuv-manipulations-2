@@ -128,3 +128,4 @@ myyuv_opengl_spinning_cube /path/to/image.myyuv -force_cube -shapes 10
 ## Resources
 - Chef with trumpet: https://heic.digital/samples/
 - Learn OpenGL: https://learnopengl.com/
+- C++ reading and writing BMP images: https://solarianprogrammer.com/2018/11/19/cpp-reading-writing-bmp-images/
