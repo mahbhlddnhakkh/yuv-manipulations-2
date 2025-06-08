@@ -116,6 +116,11 @@ public:
   static std::unordered_map<Compression, std::unordered_map<FourccFormat, std::function<YUV(const YUV&)>>> decompress_map;
 
   /**
+  * @brief Map for getting a pixel value from `x` and `y` coordinates.
+  */
+  static std::unordered_map<FourccFormat, std::function<std::array<uint8_t, max_planes>(const YUV&, uint32_t, uint32_t)>> yuv_get_pixel_map;
+
+  /**
   * @brief Default empty constructor.
   * @warning If left as it is, consideres invalid.
   * @see load
@@ -285,6 +290,15 @@ public:
   * @see FormatGroup
   */
   static FormatGroup getFormatGroup(FourccFormat format) noexcept;
+
+  /**
+  * @brief Get pixel value in `x` and `y` coordinates.
+  * @warning Slow.
+  * @param x x coordinate.
+  * @param y y coordinate.
+  * @return Array of YUV(A) pixel values.
+  */
+  std::array<uint8_t, max_planes> getPixel(uint32_t x, uint32_t y) const;
 
   /**
   * @brief Compresses YUV image.

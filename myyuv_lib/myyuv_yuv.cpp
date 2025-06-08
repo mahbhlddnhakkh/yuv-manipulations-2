@@ -159,6 +159,26 @@ std::unordered_map<YUV::Compression, std::unordered_map<YUV::FourccFormat, std::
   }}
 };
 
+std::unordered_map<YUV::FourccFormat, std::function<std::array<uint8_t, YUV::max_planes>(const YUV&, uint32_t x, uint32_t y)>> YUV::yuv_get_pixel_map {
+  { FourccFormats::IYUV, [](const YUV& yuv, uint32_t x, uint32_t y)->std::array<uint8_t, max_planes>{
+    const uint32_t width = yuv.getWidth();
+    const uint32_t height = yuv.getHeight();
+    if (yuv.isCompressed()) {
+      throw std::runtime_error("Cannot get pixel from compressed image. Decompress first.");
+    }
+    if (x >= width || y >= height) {
+      throw std::runtime_error("Image coordinates are out of bounds");
+    }
+    std::array<const uint8_t*, 3> planes{yuv.data, yuv.data + width * height, yuv.data + width * height * 5 / 4};
+    const uint32_t uv_index = x / 2 + y * width / 4;
+    std::array<uint8_t, max_planes> res{0};
+    res[0] = planes[0][x + y * width];
+    res[1] = planes[1][uv_index];
+    res[2] = planes[2][uv_index];
+    return res;
+  }}
+};
+
 YUV::YUV(const std::string& path) : YUV() {
   load(path);
 }
@@ -416,6 +436,19 @@ YUV::FormatGroup YUV::getFormatGroup(FourccFormat format) noexcept {
   } else {
     return FormatGroup::UNKNOWN;
   }
+}
+
+std::array<uint8_t, YUV::max_planes> YUV::getPixel(uint32_t x, uint32_t y) const {
+  if (!mapKeyExist(yuv_get_pixel_map, getFourccFormat())) {
+    throw std::runtime_error("Unimplemented");
+  }
+  if (isCompressed()) {
+    throw std::runtime_error("Cannot get pixel from compressed image. Decompress first.");
+  }
+  if (x >= getWidth() || y >= getHeight()) {
+    throw std::runtime_error("Image coordinates are out of bounds");
+  }
+  return yuv_get_pixel_map.at(getFourccFormat())(*this, x, y);
 }
 
 YUV YUV::compress(Compression compression, const void* params, uint32_t params_size) const {
