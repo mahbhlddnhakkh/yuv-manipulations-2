@@ -7,7 +7,7 @@
 
 void glfw_error_callback(GLint error, const GLchar* desc) {
   //std::cout << "GLFW error " << error << ": " << desc << '\n';
-  throw std::runtime_error(std::string("GLFW error " + std::to_string(error) + ": " + desc));
+  throw std::runtime_error("GLFW error " + std::to_string(error) + ": " + desc);
 }
 
 IMAGE_FORMAT figure_out_format_magic(const std::string& path) {
@@ -127,7 +127,16 @@ std::vector<GLuint> create_yuv_texture(const myyuv::YUV& yuv, GLuint shader_prog
       texes.push_back(0);
       auto width_height = yuv.getWidthHeightChannel(i);
       assert(width_height[0] != 0 && width_height[1] != 0);
-      create_yuv_plane_texture(shader_program, unit + j, texes.at(j), planes[i], width_height[0], width_height[1], uniforms.at(j));
+      try {
+        create_yuv_plane_texture(shader_program, unit + j, texes.at(j), planes[i], width_height[0], width_height[1], uniforms.at(j));
+      } catch (...) {
+        for (auto t : texes) {
+          if (t != 0) {
+            glDeleteTextures(1, &t);
+          }
+        }
+        throw;
+      }
       j++;
     }
   }

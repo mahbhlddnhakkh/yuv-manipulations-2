@@ -71,6 +71,10 @@ namespace myyuv {
 static_assert(YUV::max_planes >= 3, "max_planes must be at least 3");
 static_assert(YUV::no_plane >= YUV::max_planes, "no_plane can't be less than max_planes");
 
+std::unordered_map<YUV::FourccFormat, YUV::FormatGroup> YUV::yuv_format_group_map = {
+  { FourccFormats::IYUV /* 0x56555949 */, FormatGroup::PLANAR },
+};
+
 // Order of planes
 // Example: YUV -> 0, 1, 2 ; YVU -> 0, 2, 1
 std::unordered_map<YUV::FourccFormat, std::array<uint8_t, YUV::max_planes>> YUV::yuv_order_planes_map = {
@@ -153,10 +157,6 @@ std::unordered_map<YUV::Compression, std::unordered_map<YUV::FourccFormat, std::
       return myyuvDCT::decompress_DCT_planar(yuv, p);
     }}
   }}
-};
-
-std::unordered_map<YUV::FourccFormat, YUV::FormatGroup> YUV::yuv_format_group_map = {
-  { FourccFormats::IYUV, FormatGroup::PLANAR },
 };
 
 YUV::YUV(const std::string& path) : YUV() {
@@ -337,18 +337,17 @@ std::array<uint8_t, YUV::max_planes> YUV::getYUVPlanesOrder() const {
         return false;
       }
     }
-    return true;
-  }(order));
-  for (uint32_t i = 1; i < max_planes; i++) {
-    assert(order[i] >= 0 && order[i] <= max_planes - 1 || order[i] == no_plane);
-  }
-  for (uint32_t i = 0; i < max_planes; i++) {
-    if (order[i] != no_plane) {
-      for (uint32_t j = i + 1; j < max_planes; j++) {
-        assert(order[i] != order[j]);
+    for (uint32_t i = 0; i < max_planes; i++) {
+      if (order[i] != no_plane) {
+        for (uint32_t j = i + 1; j < max_planes; j++) {
+          if (order[i] == order[j]) {
+            return false;
+          }
+        }
       }
     }
-  }
+    return true;
+  }(order));
   return order;
 }
 
@@ -362,14 +361,15 @@ uint32_t YUV::getImageSize() const {
 }
 
 std::array<const uint8_t*, YUV::max_planes> YUV::getYUVPlanes() const {
-  auto bits = getFormatSizeBits();
-  if (getFormatGroup() != FormatGroup::PLANAR) {
-    throw std::runtime_error("Error. Can't get planes on non-planar type");
-  }
+  //if (getFormatGroup() != FormatGroup::PLANAR) {
+  //  throw std::runtime_error("Error. Can't get planes on non-planar type");
+  //}
   if (!mapKeyExist(yuv_order_planes_map, getFourccFormat())) {
     throw std::runtime_error("Error. Planar type unimplemented (?)");
   }
   auto order = getYUVPlanesOrder();
+  auto bits = getFormatSizeBits();
+  auto format_group = getFormatGroup();
   std::array<const uint8_t*, max_planes> res = { 0 };
   assert(order[0] != no_plane);
   res[order[0]] = data;
@@ -382,11 +382,21 @@ std::array<const uint8_t*, YUV::max_planes> YUV::getYUVPlanes() const {
       continue;
     }
     res[o] = res[o_prev] + header.width * header.height * bits[o_prev] / 8;
+    if (format_group == FormatGroup::PACKED) {
+      res[o] = data;
+    }
   }
   for (uint32_t i = 0; i < max_planes; i++) {
     const uint32_t o = order[i];
     if (o != no_plane && bits[o] == 0) {
       res[o] = nullptr;
+    }
+  }
+  if (format_group == FormatGroup::SEMI_PLANAR) {
+    if (res[1] != nullptr) {
+      res[2] = res[1];
+    } else if (res[2] != nullptr) {
+      res[1] = res[2];
     }
   }
   return res;

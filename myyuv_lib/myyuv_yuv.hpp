@@ -41,9 +41,9 @@ public:
   uint8_t* data = nullptr;
 public:
   /**
-  * @brief Enum for YUV format group: either packed or planar.
+  * @brief Enum for YUV format group: packed, planar or semi-planar.
   */
-  enum class FormatGroup { UNKNOWN = 0, PACKED, PLANAR };
+  enum class FormatGroup { UNKNOWN = 0, PACKED, PLANAR, SEMI_PLANAR };
 
   /**
   * @brief Alias for fourcc format
@@ -82,6 +82,12 @@ public:
   static constexpr const uint8_t no_plane = 0xff;
 
   /**
+  * @brief Map for identifying YUV format group.
+  * @see FormatGroup
+  */
+  static std::unordered_map<FourccFormat, FormatGroup> yuv_format_group_map;
+
+  /**
   * @brief Map for YUV order for planes for planar group.
   * @note Use `no_pane` if plane is unused.
   * @example YUV -> [0, 1, 2] ; YVU -> [0, 2, 1]
@@ -108,12 +114,6 @@ public:
   * @brief Map for decompressing YUV image.
   */
   static std::unordered_map<Compression, std::unordered_map<FourccFormat, std::function<YUV(const YUV&)>>> decompress_map;
-
-  /**
-  * @brief Map for identifying YUV format group.
-  * @see FormatGroup
-  */
-  static std::unordered_map<FourccFormat, FormatGroup> yuv_format_group_map;
 
   /**
   * @brief Default empty constructor.
