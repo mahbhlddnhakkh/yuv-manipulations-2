@@ -24,7 +24,7 @@ cd ..
 ```
 You can also use `-D MYYUV_USE_OPENMP=ON` to build with OpenMP support for parallel DCT compression and decompression. OpenMP is disabled by default.
 
-## Run:
+## Targets:
 ### `myyuv_lib`
 A library for YUV and BMP images. Note: compression works only with images whose width and height are divisible integer by 16. For YUV (IYUV) conversion image width and height must be a divisible integer by 2.
 <details><summary>libmyyuv_lib: myyuv.hpp</summary>
@@ -117,6 +117,15 @@ myyuv_opengl_spinning_cube /path/to/image.myyuv -force_cube -shapes 10
 
 ## BMP formats:
 - `XRGB8888` on little-endian tested
+
+## Examples
+Directory `images` contains image examples to use for demonstration:
+- `chef-with-trumpet.bmp` - Small chef with trumpet image.
+- `chef-with-trumpet.myyuv` - `chef-with-trumpet.bmp` in IYUV format.
+- `chef-with-trumpet-DCT-50.myyuv` - `chef-with-trumpet.myyuv` with DCT compression with quality 50.
+- `chef-with-trumpet-DCT-90.myyuv` - `chef-with-trumpet.myyuv` with DCT compression with quality 90.
+
+Same thing with `chef-with-trumpet-big` images which are in original 4K quality.
 
 ## TODOs:
 - Change (most) asserts to C++ exceptions
