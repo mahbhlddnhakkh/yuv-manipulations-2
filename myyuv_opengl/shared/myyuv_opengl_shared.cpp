@@ -79,7 +79,9 @@ int create_shader_program(GLuint& shader_program, const char* vertex_shader_src,
 
 GLuint create_bmp_texture(const myyuv::BMP& bmp, GLuint shader_program, const GLchar* uniform, GLuint unit) {
   assert(bmp.isValid());
-  assert(bmp.header.bit_count == 32);
+  if (!bmp.isValid()) {
+    throw std::runtime_error("BMP is invalid");
+  }
   GLuint texture;
   glGenTextures(1, &texture);
   glBindTexture(GL_TEXTURE_2D, texture);
@@ -88,7 +90,14 @@ GLuint create_bmp_texture(const myyuv::BMP& bmp, GLuint shader_program, const GL
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   uint8_t* data = bmp.colorDataFlipped();
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bmp.trueWidth(), bmp.trueHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+  if (bmp.header.bit_count == 32) {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bmp.trueWidth(), bmp.trueHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+  } else if (bmp.header.bit_count == 24) {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, bmp.trueWidth(), bmp.trueHeight(), 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+  } else {
+    delete[] data;
+    throw std::runtime_error("Unknown BMP bit count");
+  }
   delete[] data;
   glGenerateMipmap(GL_TEXTURE_2D);
   if (shader_program != 0 && uniform != nullptr) {
@@ -112,7 +121,9 @@ static void create_yuv_plane_texture(GLuint shader_program, const GLuint unit, G
 }
 
 std::vector<GLuint> create_yuv_texture(const myyuv::YUV& yuv, GLuint shader_program, const std::vector<const GLchar*>& uniforms, GLuint unit) {
-  assert(yuv.isValid());
+  if (!yuv.isValid()) {
+    throw std::runtime_error("YUV is invalid");
+  }
   assert(!yuv.isCompressed());
   assert(shader_program != 0);
   assert(uniforms.size() > 0);
