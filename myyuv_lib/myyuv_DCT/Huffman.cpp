@@ -33,7 +33,7 @@ static uint32_t zigzag_indexes[64] = {
   0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5, 12, 19, 26, 33, 40, 48, 41, 34, 27, 20, 13, 6, 7, 14, 21, 28, 35, 42, 49, 56, 57, 50, 43, 36, 29, 22, 15, 23, 30, 37, 44, 51, 58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63,
 };
 
-static void pack11bit(uint8_t* packed_res, std::set<int16_t>::iterator& it, uint8_t count) noexcept {
+static void pack11bit(uint8_t* packed_res, std::vector<int16_t>::const_iterator& it, uint8_t count) noexcept {
   std::fill(packed_res, packed_res + divide_roundup(static_cast<unsigned>(count) * 11u, 8u), 0);
   int bit_offset = 0;
   for (uint8_t i = 0; i < count; i++) {
@@ -47,11 +47,11 @@ static void pack11bit(uint8_t* packed_res, std::set<int16_t>::iterator& it, uint
       packed_res[byte_ind + 2] |= (num >> (16 - bit_ind)) & 0xFF;
     }
     bit_offset += 11;
-    it = std::next(it);
+    it++;
   }
 }
 
-static void unpack11bit(const uint8_t* packed_arr, std::set<int16_t>& res, uint8_t count) noexcept {
+static void unpack11bit(const uint8_t* packed_arr, std::vector<int16_t>& res, uint8_t count) noexcept {
   int bit_offset = 0;
   for (uint8_t i = 0; i < count; i++) {
     int byte_ind = bit_offset / 8;
@@ -63,17 +63,19 @@ static void unpack11bit(const uint8_t* packed_arr, std::set<int16_t>& res, uint8
     }
     _num &= 0x7FF;
     int16_t num = (_num >= 1024) ? (_num - 2048) : _num;
-    res.insert(num);
+    res.push_back(num);
     bit_offset += 11;
   }
 }
 
-static void generateCodeLength(std::map<uint8_t, std::set<int16_t>>& tree_data, const std::shared_ptr<myyuvDCT::HFMNode>& node, uint8_t code_length) {
+static void generateCodeLength(std::map<uint8_t, std::vector<int16_t>>& tree_data, const std::shared_ptr<myyuvDCT::HFMNode>& node, uint8_t code_length) {
   if (node == nullptr) {
     return;
   }
   if (node->isLeaf()) {
-    tree_data[code_length + (code_length == 0)].insert(node->ch);
+    std::vector<int16_t>& vector = tree_data[code_length + (code_length == 0)];
+    vector.reserve(16); // 8 looks too little and 32 looks too much
+    vector.insert(std::lower_bound(vector.begin(), vector.end(), node->ch), node->ch);
     return;
   }
   generateCodeLength(tree_data, node->left, code_length + 1);
@@ -81,15 +83,15 @@ static void generateCodeLength(std::map<uint8_t, std::set<int16_t>>& tree_data, 
 }
 
 // map<ch, <length, code>>
-static std::unordered_map<int16_t, std::pair<uint8_t, std::bitset<8>>> generateCanonicalTree(const std::map<uint8_t, std::set<int16_t>>& tree_data) {
+static std::unordered_map<int16_t, std::pair<uint8_t, std::bitset<8>>> generateCanonicalTree(const std::map<uint8_t, std::vector<int16_t>>& tree_data) {
   std::unordered_map<int16_t, std::pair<uint8_t, std::bitset<8>>> res;
   uint8_t prev_len = 0;
   uint8_t code = 0;
   for (const auto& it : tree_data) {
-    const std::set<int16_t>& set = it.second;
+    const std::vector<int16_t>& vector = it.second;
     const uint8_t& len = it.first;
     code <<= len - prev_len;
-    for (const auto& c : set) {
+    for (const auto& c : vector) {
       assert(code < 128); // just in case
       res.insert({ c, { len, code } });
       //std::cout << (int)c << ':' << std::bitset<8>(code).to_string().substr(8 - len) << ' ' << (int)len << '\n';
@@ -101,15 +103,18 @@ static std::unordered_map<int16_t, std::pair<uint8_t, std::bitset<8>>> generateC
 }
 
 // https://github.com/madler/zlib/blob/develop/contrib/puff/puff.c decode (SLOW)
-static int16_t decodeSymbol(uint16_t& i, const std::bitset<512>& encoded_data, const uint16_t encoded_data_bits, const std::map<uint8_t, std::set<int16_t>>& tree_data) {
+static int16_t decodeSymbol(uint16_t& i, const std::bitset<512>& encoded_data, const uint16_t encoded_data_bits, const std::map<uint8_t, std::vector<int16_t>>& tree_data) {
   uint8_t code = 0;
   uint8_t first = 0;
+  auto tree_data_iterator = tree_data.begin();
   for (uint8_t j = 1; j <= 8; j++) {
     uint8_t ch_count = 0;
-    const std::set<int16_t>* set = nullptr;
-    if (mapKeyExist(tree_data, j)) {
-      set = &tree_data.at(j);
-      ch_count = set->size();
+    const std::vector<int16_t>* vector = nullptr;
+    if (tree_data_iterator != tree_data.end() && tree_data_iterator->first == j) {
+      vector = &tree_data_iterator->second;
+      tree_data_iterator++;
+      assert(vector == &tree_data.at(j));
+      ch_count = vector->size();
     }
     assert(i < encoded_data_bits);
     if (i >= encoded_data_bits) {
@@ -121,10 +126,10 @@ static int16_t decodeSymbol(uint16_t& i, const std::bitset<512>& encoded_data, c
     if (code < ch_count + first) {
       assert(code >= first);
       assert(code - first < ch_count);
-      if (!set) {
+      if (!vector) {
         throw std::runtime_error("Huffman bad code");
       }
-      return *std::next(set->begin(), code - first);
+      return vector->at(code - first);
     }
     first += ch_count;
     first <<= 1;
@@ -135,7 +140,7 @@ static int16_t decodeSymbol(uint16_t& i, const std::bitset<512>& encoded_data, c
   return 0;
 }
 
-static void decodeFromTreeData(int16_t data[64], const std::bitset<512>& encoded_data, const uint16_t encoded_data_bits, const std::map<uint8_t, std::set<int16_t>>& tree_data) {
+static void decodeFromTreeData(int16_t data[64], const std::bitset<512>& encoded_data, const uint16_t encoded_data_bits, const std::map<uint8_t, std::vector<int16_t>>& tree_data) {
   assert(encoded_data_bits <= encoded_data.size());
   size_t j = 0;
   uint16_t i = 0;
@@ -254,11 +259,12 @@ Huffman Huffman::fromDump(const uint8_t* data, uint8_t size) {
     uint8_t ch_info = data[i++];
     uint8_t ch_length = (ch_info >> 5) + 1;
     uint8_t ch_count = (ch_info & 31) + 1;
-    unpack11bit(data + i, huffman.tree_data[ch_length], ch_count);
+    std::vector<int16_t>& vector = huffman.tree_data[ch_length];
+    vector.reserve(ch_count);
+    unpack11bit(data + i, vector, ch_count);
     i += divide_roundup(static_cast<unsigned>(ch_count) * 11u, 8u);
   }
   assert(i - 3 == tree_data_size);
-  const std::unordered_map<int16_t, std::pair<uint8_t, std::bitset<8>>> canonical_tree = generateCanonicalTree(huffman.tree_data);
   huffman.encoded_data_bits = encoded_data_bits;
   for (uint16_t j = 0; j < encoded_data_size * 8; j += 8) {
     std::bitset<8> tmp = data[i++];
@@ -292,16 +298,16 @@ void Huffman::dump(uint8_t*& res_data, uint8_t& res_size) const {
   i += 2;
   res_data[i++] = res_size - 3 - encoded_data_size;
   for (const auto& it : tree_data) {
-    const std::set<int16_t>& set = it.second;
-    assert(set.size() <= 64);
-    uint8_t ch_count = set.size();
+    const std::vector<int16_t>& vector = it.second;
+    assert(vector.size() <= 64);
+    uint8_t ch_count = vector.size();
     const uint8_t ch_length = it.first;
     assert(ch_length <= 7);
-    auto set_iter = set.begin();
+    std::vector<int16_t>::const_iterator vector_iter = vector.begin();
 tmp_label:
     const uint8_t _ch_count = std::min<uint8_t>(ch_count, 32u);
     res_data[i++] = ((ch_length - 1) << 5) | (_ch_count - 1);
-    pack11bit(res_data + i, set_iter, _ch_count);
+    pack11bit(res_data + i, vector_iter, _ch_count);
     i += divide_roundup(static_cast<unsigned>(_ch_count) * 11u, 8u);
     if (ch_count > 32) {
       ch_count -= 32;

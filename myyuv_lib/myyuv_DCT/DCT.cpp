@@ -272,6 +272,7 @@ static void applyDCTBlock(float data_block[64], int16_t res[64], const float q_t
   squareMatrixMulT<8>(data_block_2, DCT_matrix8, data_block);
   for (int i = 0; i < 64; i++) {
     res[i] = static_cast<int16_t>(std::round(data_block[i] / q_table[i]));
+    assert(res[i] <= 1023 && res[i] >= -1024);
   }
 }
 

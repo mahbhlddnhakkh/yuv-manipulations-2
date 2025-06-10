@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <memory>
-#include <set>
+#include <vector>
 #include <map>
 #include <bitset>
 
@@ -110,8 +110,8 @@ protected:
   uint16_t encoded_data_bits = 0;
   std::bitset<512> encoded_data;
 
-  /// map<code_length, set<characters>>
-  std::map<uint8_t, std::set<int16_t>> tree_data;
+  /// map<code_length, vector<character>>
+  std::map<uint8_t, std::vector<int16_t>> tree_data;
 };
 
 } // myyuvDCT
