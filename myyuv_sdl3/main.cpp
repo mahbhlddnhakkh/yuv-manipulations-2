@@ -4,7 +4,8 @@
 #include <cassert>
 #include <fstream>
 
-SDL_Surface* create_surface_from_path(const std::string& path) {
+SDL_Surface* create_surface_from_path(const std::string& path, uint8_t*& surface_data) {
+  surface_data = nullptr;
   myyuv::BMPHeader bmp_header;
   myyuv::YUVHeader yuv_header;
   const uint32_t magic_size = std::max(sizeof(bmp_header.type), sizeof(yuv_header.type));
@@ -23,6 +24,7 @@ SDL_Surface* create_surface_from_path(const std::string& path) {
       throw std::runtime_error("Invalid bmp");
     }
     uint8_t* data = bmp.colorData();
+    surface_data = data;
     if (bmp.header.bit_count == 24) {
       surf = SDL_CreateSurfaceFrom(bmp.trueWidth(), bmp.trueHeight(), SDL_PIXELFORMAT_RGB24, data, 3*bmp.trueWidth());
     } else if (bmp.header.bit_count == 32) {
@@ -42,7 +44,10 @@ SDL_Surface* create_surface_from_path(const std::string& path) {
     if (!yuv.isValid()) {
       throw std::runtime_error("Invalid yuv");
     }
-    surf = SDL_CreateSurfaceFrom(yuv.header.width, yuv.header.height, static_cast<SDL_PixelFormat>(yuv.header.fourcc_format), yuv.data, yuv.header.width);
+    uint32_t yuv_data_size = yuv.getDataSize();
+    surface_data = new uint8_t[yuv_data_size];
+    std::copy(yuv.data, yuv.data + yuv_data_size, surface_data);
+    surf = SDL_CreateSurfaceFrom(yuv.header.width, yuv.header.height, static_cast<SDL_PixelFormat>(yuv.header.fourcc_format), surface_data, yuv.header.width);
   } else {
     throw std::runtime_error("Unknown image format (magic) " + path);
   }
@@ -60,7 +65,8 @@ int main(int argc, char* argv[]) {
     std::cout << "Error initializing SDL: " << SDL_GetError() << '\n';
     return 1;
   }
-  SDL_Surface* surf = create_surface_from_path(argv[1]);
+  uint8_t* surface_data;
+  SDL_Surface* surf = create_surface_from_path(argv[1], surface_data);
   if (surf == nullptr) {
     std::cout << "Error creating surface" << '\n';
     return 1;
@@ -70,6 +76,7 @@ int main(int argc, char* argv[]) {
   assert(renderer);
   SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surf);
   SDL_DestroySurface(surf);
+  delete[] surface_data;
   assert(texture);
   SDL_RenderClear(renderer);
   SDL_RenderTexture(renderer, texture, nullptr, nullptr);
